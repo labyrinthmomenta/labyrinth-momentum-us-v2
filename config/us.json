@@ -1,0 +1,11 @@
+{
+  "market": "US",
+  "timezone": "America/New_York",
+  "currency": "USD",
+  "status": "BOOTSTRAP_ONLY",
+  "publication_enabled": false,
+  "vcp_production_enabled": false,
+  "scope": ["XNAS", "XNYS", "XASE"],
+  "universe_policy": "common-stock-v1-proposal",
+  "unknown_instrument_policy": "QUARANTINE"
+}

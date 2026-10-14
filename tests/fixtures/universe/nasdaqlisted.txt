@@ -1,0 +1,7 @@
+Symbol|Security Name|Market Category|Test Issue|Financial Status|Round Lot Size|ETF|NextShares
+ALFA|Example Technology - Common Stock|Q|N|N|100|N|N
+ALFB|Example Technology - Class B Common Stock|Q|N|N|100|N|N
+ADRZ|Example Global - American Depositary Shares|G|N|N|100|N|N
+SPCZ|Example Acquisition - Common Stock|G|N|N|100|N|N
+TEST|Example Test - Common Stock|Q|Y|N|100|N|N
+File Creation Time: 1013202617:00|||||||

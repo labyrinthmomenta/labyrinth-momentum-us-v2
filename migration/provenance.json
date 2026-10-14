@@ -1,0 +1,54 @@
+{
+  "bist": {
+    "repo": "labyrinthmomenta/labyrinth-momentum-v2",
+    "ref": "v2.0.1",
+    "commit": "c62d3d3a0bf41eaad4082373bb6c46a650a646fc",
+    "ported_files": [
+      {
+        "path": "src/__init__.py",
+        "blob_sha": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+      },
+      {
+        "path": "src/indicators/__init__.py",
+        "blob_sha": "fb9e289c108bd86dd53cf466c5ba19474667cf52"
+      },
+      {
+        "path": "src/indicators/acceleration.py",
+        "blob_sha": "7b44f36497a84186f4c50528851b1faeb1232e9d"
+      },
+      {
+        "path": "src/indicators/fip.py",
+        "blob_sha": "f07f514d40902f6a0882232c0bdad962f02ecfa5"
+      },
+      {
+        "path": "src/indicators/momentum.py",
+        "blob_sha": "fc494c7e895c8dd82152448310c3fb9fd3ae9930"
+      },
+      {
+        "path": "src/indicators/atr.py",
+        "blob_sha": "91251c3f1be3b8334b7781440c5501dfea4a0c30"
+      },
+      {
+        "path": "src/calculation/__init__.py",
+        "blob_sha": "6b752cf8d49f0cde35877bea78d58457769b4667"
+      },
+      {
+        "path": "src/calculation/engine.py",
+        "blob_sha": "040e1dbdc21a6b77db70001e4f972338a6ffcc4b"
+      },
+      {
+        "path": "tests/test_calculation_engine.py",
+        "blob_sha": "1bc4f2104638925350f769c65e0b981fed74aeba"
+      },
+      {
+        "path": "tests/test_indicators.py",
+        "blob_sha": "6f4fd7286d758f569860380e1a9c2d2e207abae3"
+      }
+    ]
+  },
+  "us_v1": {
+    "repo": "labyrinthmomenta/us-momentum-screener",
+    "commit": "5b27dea70365d15964b5d3c0bff37cbe26a64422",
+    "role": "migration/regression reference only; no code imported"
+  }
+}
