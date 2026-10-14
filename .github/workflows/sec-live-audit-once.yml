@@ -63,3 +63,5 @@ jobs:
           path: runtime/a4/
           if-no-files-found: warn
           retention-days: 30
+
+# A4 one-time recheck after independent baseline fixture correction
