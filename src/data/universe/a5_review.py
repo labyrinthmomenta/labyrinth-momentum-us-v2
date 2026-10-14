@@ -127,10 +127,18 @@ def evaluate_a5(review: dict, sec) -> dict:
         if decision == "REVIEW_REQUIRED":
             txse = reason == "UNKNOWN_EXCHANGE_CODE" and exchange == "F"
             type_rows.append({
-                "source": row["source"], "symbol": symbol, "mic": mic,
+                "source": row["source"], "symbol": symbol, "name": row["name"],
+                "mic": mic, "listing_exchange_code": exchange,
                 "original_reason": reason, "original_decision": decision,
                 "evidence_needed": triage_evidence(reason),
                 "a5_proposed_scope": "OUT_OF_SCOPE_TXSE" if txse else "HOLD_FOR_TYPE_EVIDENCE",
+                "issuer_match_candidate": {
+                    "status": "SEC_EXACT_TICKER_MIC_CANDIDATE" if len(exact) == 1
+                        else "NO_EXACT_TICKER_MIC_MATCH",
+                    "cik_candidate": exact[0].cik if len(exact) == 1 else None,
+                },
+                "official_listing_fields": dict(row["evidence"]),
+                "security_type_approved": False,
                 "production_eligible": False,
                 "listing_evidence_sha256": A4_HASHES[row["source"]],
                 "sec_evidence_sha256": A4_HASHES["sec"],
