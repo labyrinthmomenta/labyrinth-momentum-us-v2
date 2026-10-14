@@ -23,7 +23,7 @@ class SecCompany:
     cik: str
     name: str
     ticker: str
-    exchange: str
+    exchange: str | None
     mic: str | None
 
 
@@ -63,14 +63,20 @@ def parse_sec_exchange_snapshot(raw: bytes, *, retrieved_at: datetime) -> SecExc
         if not 1 <= cik_number <= 9999999999:
             raise SecSnapshotError("SEC CIK out of range")
         if any(not isinstance(x, str) or not x.strip() or x != x.strip()
-               for x in (name, ticker, exchange)):
-            raise SecSnapshotError("Malformed SEC company, ticker or exchange")
+               for x in (name, ticker)):
+            raise SecSnapshotError("Malformed SEC company or ticker")
+        # Official SEC company_tickers_exchange.json legitimately contains null
+        # exchange values. Preserve as unknown venue; never infer a MIC.
+        if exchange is not None and (
+                not isinstance(exchange, str) or not exchange.strip()
+                or exchange != exchange.strip()):
+            raise SecSnapshotError("Malformed SEC exchange")
         key = (cik_number, ticker, exchange)
         if key in seen:
             raise SecSnapshotError("Duplicate SEC CIK/ticker/exchange")
         seen.add(key)
         companies.append(SecCompany(f"{cik_number:010d}", name, ticker, exchange,
-                                    EXCHANGE_TO_MIC.get(exchange.casefold())))
+                                    EXCHANGE_TO_MIC.get(exchange.casefold()) if exchange is not None else None))
     return SecExchangeSnapshot(hashlib.sha256(raw).hexdigest(), retrieved_at,
                                tuple(companies))
 
