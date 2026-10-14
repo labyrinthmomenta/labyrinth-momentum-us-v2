@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
-POLICY_VERSION = "common-stock-directory-review-v1"
+POLICY_VERSION = "common-stock-directory-review-v2"
 HEADERS = {
     "nasdaqlisted": ("Symbol", "Security Name", "Market Category", "Test Issue",
                      "Financial Status", "Round Lot Size", "ETF", "NextShares"),
@@ -45,7 +45,11 @@ def parse_directory(raw: bytes, source: str, *, retrieved_at: datetime,
     if len(lines) < 3 or tuple(lines[0].split("|")) != HEADERS[source]:
         raise DirectoryError("Unexpected header (HTML, schema change or empty response)")
     footer = lines[-1].split("|")
-    if len(footer) != len(HEADERS[source]) or any(footer[1:]):
+    # Official otherlisted captures use six trailing pipes (seven fields),
+    # while the data header has eight fields. Both known footer layouts are
+    # accepted; nonempty trailing fields and arbitrary widths remain invalid.
+    footer_widths = {8} if source == "nasdaqlisted" else {7, 8}
+    if len(footer) not in footer_widths or any(footer[1:]):
         raise DirectoryError("Invalid footer columns")
     match = re.fullmatch(r"File Creation Time: (\d{8})(\d{2}):?(\d{2})", footer[0])
     if not match:
@@ -99,9 +103,11 @@ def classify(row: dict[str, str], source: str) -> dict:
             decision, reason = "EXCLUDE", "VENUE_OUT_OF_SCOPE"
         else:
             decision, reason = "REVIEW_REQUIRED", "UNKNOWN_EXCHANGE_CODE"
+    elif re.search(r"\bwhen[ -](issued|distributed)\b", text):
+        decision, reason = "EXCLUDE", "WHEN_ISSUED_OR_DISTRIBUTED"
     elif re.search(r"\b(preferred|preference|warrants?|rights?|units?|notes?|debentures?|bonds?|etn|etf)\b", text):
         decision, reason = "EXCLUDE", "NON_COMMON_INSTRUMENT_NAME"
-    elif re.search(r"\b(depositary|depository|adr|ads)\b", text):
+    elif re.search(r"\b(depositary|depository|adrs?|adss?)\b", text):
         decision, reason = "EXCLUDE", "DEPOSITARY_RECEIPT_NAME"
     elif re.search(r"\b(funds?|portfolio|income trust)\b", text):
         decision, reason = "REVIEW_REQUIRED", "FUND_NAME_REQUIRES_TYPE_EVIDENCE"
@@ -109,7 +115,7 @@ def classify(row: dict[str, str], source: str) -> dict:
         decision, reason = "REVIEW_REQUIRED", "SPAC_BDC_OR_FINANCIAL_REVIEW"
     elif row.get("Financial Status", "N") != "N":
         decision, reason = "REVIEW_REQUIRED", "FINANCIAL_STATUS_REVIEW"
-    elif re.search(r"\b(common stock|common shares|ordinary shares|ordinary share)\b", text):
+    elif re.search(r"\b(common stock|common shares?|ordinary shares?)\b", text):
         decision, reason = "INCLUDE", "EXPLICIT_COMMON_NAME_CANDIDATE"
     return {"source": source, "symbol": symbol, "name": name, "mic": mic,
             "decision": decision, "reason": reason, "evidence": dict(row),

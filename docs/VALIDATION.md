@@ -1,6 +1,7 @@
 # Başlangıç doğrulaması
 
-Güncel A1 sonucu: 42 test geçti. İlk 16 testin aşağıdaki kaydı korunmuştur.
+Güncel A1 sonucu: 53 test geçti. Resmi kaynak capture doğrulaması da tamamlandı;
+[canlı audit raporu](A1_LIVE_AUDIT.md). İlk 16 testin aşağıdaki kaydı korunmuştur.
 US parser/identity kapsamı ve canlı kaynak sınırı için [A1 raporuna](A1_UNIVERSE_STATUS.md) bakın.
 
 14 Ekim 2026, yerel Python 3.12.10 ortamında:

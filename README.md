@@ -8,7 +8,8 @@ VCP ve zamanlanmış görevler etkin değildir.
 - US V1: yalnızca migration/regression referansı; kod taşınmadı.
 - Kararlar ve uygulama sırası: [Başlangıç planı](docs/US_V2_BASLANGIC_PLANI.md).
 - Taşınan dosyaların kaynak blob kimlikleri: [provenance](migration/provenance.json).
-- Son ilerleme ve canlı kaynak engeli: [A1 durum raporu](docs/A1_UNIVERSE_STATUS.md).
+- Güncel resmi kaynak doğrulaması: [A1 canlı audit](docs/A1_LIVE_AUDIT.md).
+- Önceki altyapı aşaması: [A1 durum raporu](docs/A1_UNIVERSE_STATUS.md).
 
 Python 3.11+ ile proje kökünde:
 
@@ -26,6 +27,7 @@ Kaynakta kalan BIST takvimi açıklaması provenance korunması için değiştir
 Runtime DB ve ham veri Git'e eklenmez. İleride dış depolamada sürümlü
 snapshot + checksum + geri yükleme kontrolü kullanılacak.
 
-Evren ön incelemesi ve SQLite kimlik şeması eklendi. Resmi kaynak denemesi HTML
-erişim koruma sayfası döndürdüğü için gerçek evren henüz doğrulanmadı.
-Sentetik örneklerle birlikte toplam 42 test geçiyor; production kapalı.
+Evren ön incelemesi ve SQLite kimlik şeması eklendi. Resmi Nasdaq dosyaları
+14 Ekim 2026 tarihinde indirildi ve kaynak doğrulaması geçti. 13.287 kayıt üzerinde
+4.556 aday, 7.721 kapsam dışı ve 1.010 inceleme kaydı belirlendi. Bu aday sınıflaması
+production onayı değildir. Toplam 53 test geçiyor; production kapalı.

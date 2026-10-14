@@ -1,0 +1,67 @@
+{
+  "status": "REVIEW_ONLY",
+  "policy_version": "common-stock-directory-review-v2",
+  "production_eligible": false,
+  "total": 13287,
+  "counts": {
+    "INCLUDE": 4556,
+    "EXCLUDE": 7721,
+    "REVIEW_REQUIRED": 1010
+  },
+  "sources": [
+    {
+      "source": "nasdaqlisted",
+      "sha256": "d795709ce99f50ad29e58231dab1b4116ce9d9a0657671d20b9ccd7a944b2c0e",
+      "created_at": "2026-10-14T08:31:00-04:00",
+      "retrieved_at": "2026-10-14T12:34:08.072024+00:00"
+    },
+    {
+      "source": "otherlisted",
+      "sha256": "e41a3966c23c1ba66dc69de9cc2dce60b50acba87993bfe5cd889b3d6b491f62",
+      "created_at": "2026-10-14T08:31:00-04:00",
+      "retrieved_at": "2026-10-14T12:34:09.505834+00:00"
+    }
+  ],
+  "reason_counts": {
+    "DEPOSITARY_RECEIPT_NAME": 334,
+    "EXPLICIT_COMMON_NAME_CANDIDATE": 4556,
+    "FINANCIAL_STATUS_REVIEW": 268,
+    "FUND_FLAG": 5769,
+    "FUND_NAME_REQUIRES_TYPE_EVIDENCE": 297,
+    "NON_COMMON_INSTRUMENT_NAME": 1557,
+    "SPAC_BDC_OR_FINANCIAL_REVIEW": 307,
+    "TEST_ISSUE": 37,
+    "TYPE_UNCONFIRMED": 128,
+    "UNKNOWN_EXCHANGE_CODE": 10,
+    "VENUE_OUT_OF_SCOPE": 21,
+    "WHEN_ISSUED_OR_DISTRIBUTED": 3
+  },
+  "source_counts": {
+    "nasdaqlisted": {
+      "EXCLUDE": 2394,
+      "REVIEW_REQUIRED": 557,
+      "INCLUDE": 2678
+    },
+    "otherlisted": {
+      "INCLUDE": 1878,
+      "EXCLUDE": 5327,
+      "REVIEW_REQUIRED": 453
+    }
+  },
+  "capture_urls": [
+    {
+      "source": "nasdaqlisted",
+      "url": "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"
+    },
+    {
+      "source": "otherlisted",
+      "url": "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    }
+  ],
+  "limitations": [
+    "Directory-only candidates; no production eligibility",
+    "No SEC enrichment or historical point-in-time universe yet",
+    "Name-based policy is provisional; unresolved classifications require evidence",
+    "Raw snapshots and full review JSON/CSV remain local under runtime/"
+  ]
+}

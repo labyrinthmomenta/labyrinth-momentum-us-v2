@@ -1,5 +1,8 @@
 # A1 — US evren ve kimlik altyapısı
 
+Güncelleme: aynı gün sonraki indirmeler başarılı oldu. Aşağıdaki kayıt ilk denemenin
+tarihçesidir; güncel sonuç [A1 canlı audit](A1_LIVE_AUDIT.md) belgesindedir.
+
 14 Ekim 2026. Durum: offline altyapı tamamlandı; canlı kaynak doğrulaması açık.
 
 ## Uygulananlar
