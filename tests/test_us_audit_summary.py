@@ -21,7 +21,7 @@ def fixture():
     enriched["sec_enrichment"] = {"sha256": "sec-sha",
                                     "retrieved_at": "2026-10-14T12:00:00+00:00",
                                     "rows": 100}
-    baseline = {"sources": srcs, "total": 2, "counts": deepcopy(original["counts"])}
+    baseline = {"sources": deepcopy(srcs), "total": 2, "counts": deepcopy(original["counts"])}
     return original, enriched, baseline
 
 
