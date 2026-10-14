@@ -135,3 +135,15 @@ def test_include_stays_provisional_and_needs_evidence():
                             "reason": "EXPLICIT_COMMON_NAME_CANDIDATE"})
     assert triage["status"] == "PROVISIONAL_ONLY"
     assert "SHARE_CLASS" in triage["required_evidence"]
+
+
+def test_official_sec_null_exchange_is_unmapped_evidence_not_rejection():
+    snap = parse_sec_exchange_snapshot(sec_payload([
+        [2156068, "InoBat B.V.", "INBT", None],
+    ]), retrieved_at=NOW)
+    assert snap.companies[0].exchange is None
+    assert snap.companies[0].mic is None
+    out = enrich_review_with_sec(report_rows(
+        ("INBT", "XNAS", "REVIEW_REQUIRED", "TYPE_UNCONFIRMED")), snap)
+    assert out["rows"][0]["issuer_match"]["status"] == "SEC_NOT_FOUND"
+    assert out["rows"][0]["production_eligible"] is False
