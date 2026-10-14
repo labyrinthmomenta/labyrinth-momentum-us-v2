@@ -65,3 +65,5 @@ jobs:
           retention-days: 30
 
 # A4 one-time recheck after independent baseline fixture correction
+
+# A4 re-run: SEC confirmed 171 null-exchange rows; parser now preserves unknown MIC.
