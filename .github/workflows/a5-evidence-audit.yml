@@ -1,0 +1,48 @@
+name: One-time A5 frozen-official-source instrument audit
+
+on:
+  push:
+    branches:
+      - feature/a5-venue-instrument-evidence
+    paths:
+      - .github/workflows/a5-evidence-audit.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  a5-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install test dependencies
+        run: python -m pip install -r requirements-dev.txt
+      - name: Run all offline tests
+        run: python -m pytest -q
+      - name: Retrieve archived A4 official-source data and receipts
+        uses: actions/download-artifact@v4
+        with:
+          name: a4-sec-directory-audit
+          run-id: 38629237276
+          repository: labyrinthmomenta/labyrinth-momentum-us-v2
+          github-token: ${{ github.token }}
+          path: runtime/a4
+      - name: Reconstruct official A4 snapshot and audit every A5 exception
+        run: |
+          python -m src.data.universe.a5_review \
+            --a4-artifact-dir runtime/a4 \
+            --output runtime/a5
+      - name: Preserve full evidence queues for independent review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a5-venue-and-instrument-evidence
+          path: runtime/a5/
+          if-no-files-found: warn
+          retention-days: 90
