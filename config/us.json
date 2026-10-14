@@ -5,7 +5,21 @@
   "status": "BOOTSTRAP_ONLY",
   "publication_enabled": false,
   "vcp_production_enabled": false,
-  "scope": ["XNAS", "XNYS", "XASE"],
-  "universe_policy": "common-stock-v1-proposal",
-  "unknown_instrument_policy": "QUARANTINE"
+  "scope": [
+    "XNAS",
+    "XNYS",
+    "XASE"
+  ],
+  "universe_policy": "common-stock-directory-review-v2",
+  "unknown_instrument_policy": "QUARANTINE",
+  "tradability": {
+    "status": "SPECIFICATION_ONLY",
+    "evaluation_enabled": false,
+    "window_completed_sessions": 90,
+    "min_last_completed_close_usd_exclusive": 5,
+    "min_mean_close_times_share_volume_usd_exclusive": 1000000,
+    "separate_share_volume_threshold": false,
+    "missing_or_incomplete_data": "FAIL_CLOSED",
+    "changes_official_universe": false
+  }
 }
