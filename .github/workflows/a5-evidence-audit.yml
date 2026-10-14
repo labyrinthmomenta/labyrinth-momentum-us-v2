@@ -46,3 +46,5 @@ jobs:
           path: runtime/a5/
           if-no-files-found: warn
           retention-days: 90
+
+# Reproduce A5 after adding full official listing fields to the review queue.
