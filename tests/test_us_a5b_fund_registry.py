@@ -130,3 +130,14 @@ def test_reject_missing_or_altered_a5_queue():
     records[0]["production_eligible"] = True
     with pytest.raises(ValueError):
         enrich_fund_queue(records, snap)
+
+
+def test_sec_optional_empty_fund_ticker_is_retained_but_not_matchable():
+    payload = raw([[2078265, "S000108971", "C000280065", ""]])
+    snap = parse_funds(payload, NOW)
+    assert len(snap.classes) == 1
+    assert snap.classes[0].ticker == ""
+    output = enrich_fund_queue(fixture_rows(), snap)
+    assert output["fund_ticker_match_status_counts"] == {
+        "NOT_IN_SEC_FUND_TICKER_FILE": 1010,
+    }
