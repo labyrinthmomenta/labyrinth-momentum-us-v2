@@ -226,7 +226,7 @@ def test_proposed_merger_language_is_review_only_even_when_specific():
         b"<p>Item 7.01 Regulation FD Disclosure</p>"
         b"<p>The registrant announced a proposed merger between Example BDC"
         b" and Other Fund, subject to shareholder approval.</p>" * 8
-        b"</body></html>"
+        + b"</body></html>"
     )
     out = mod.analyze_eight_k(html)
     assert "MERGER_OR_ACQUISITION_LANGUAGE" in out["risk_language_review_snippets"]
