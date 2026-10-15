@@ -112,3 +112,33 @@ def test_untrusted_data_sec_org_target_refused_without_network():
     with pytest.raises(mod.OfficialTypeError):
         mod.fetch_sec("https://data.sec.gov/submissions/CIK0000000001.json",
                       "Example contact@example.org",limit=1024)
+
+
+def test_10q_adds_cautious_section_12b_same_row_candidate_no_release(monkeypatch,tmp_path):
+    rows=[{"symbol":sym,"issuer_cik_candidate":cik,"a5i_decision":"REVIEW_REQUIRED",
+           "release_hold":True,"production_eligible":False}
+          for sym,(cik,_) in mod.PILOT.items()]
+    monkeypatch.setattr(mod,"_frozen_json",lambda *args:{
+        "status":"CLASSIFICATION_EVIDENCE_TRIAGE_REVIEW_ONLY",
+        "production_eligible":False,"total_review_records":1010,
+        "triage_rows":rows+[{"symbol":f"ELSE{i}"} for i in range(1001)]})
+    doc=(b"<html><body><h2>FORM 10-Q</h2><p>Quarterly Report Pursuant to SEC rules.</p>"
+         b"<table><tr><td>Common Stock $0.01 par value</td><td>ARR</td>"
+         b"<td>New York Stock Exchange</td></tr></table>"
+         + b"<p>Quarterly financial statements SEC issuer report.</p>"*18
+         + b"</body></html>")
+    def fetch(url,agent,*,limit):
+        if url.endswith(".json"):
+            cik=url.split("CIK")[-1].removesuffix(".json")
+            category=next(cat for c,cat in mod.PILOT.values() if c==cik)
+            form=("S-1" if category=="SPAC_OR_BLANK_CHECK" else
+                  "N-CSR" if category=="CLOSED_END_FUND_VS_BDC" else "10-Q")
+            return subs(cik,form=form)
+        return doc
+    result=mod.run_pilot(tmp_path,tmp_path/"row",agent="SEC Research lab@example.org",
+                         fetcher=fetch,clock=lambda:NOW,pause=lambda _:None)
+    arr=next(r for r in result["records"] if r["ticker"]=="ARR")
+    row=arr["primary_observation"]["section12b_same_row_common_stock_candidate"]
+    assert row["row_present"] is True
+    assert row["security_id_approved"] is False
+    assert result["listed_security_id_approved"]==0
