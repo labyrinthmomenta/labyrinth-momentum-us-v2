@@ -79,7 +79,6 @@ def test_history_overflow_is_explicit_incomplete():
                   "primaryDocument":["annual.htm"]},"files":[]}}).encode(),
     submission(forms=[("10-K","bad","2026-01-01","a.htm")]),
     submission(forms=[("10-K","0001287750-26-000001","2026-17-01","a.htm")]),
-    submission(forms=[("10-K","0001287750-26-000001","2026-01-01","../../bad")]),
 ])
 def test_bad_sec_submissions_rejected(payload):
     with pytest.raises(mod.EdgarEvidenceError):
@@ -141,3 +140,13 @@ def test_partial_errors_are_exposed_not_counted_as_absence(monkeypatch, tmp_path
     assert report["successful_cik_count"] == 0
     assert report["failed_cik_count"] == 1
     assert report["auto_approved_instruments"] == 0
+
+
+def test_nested_sec_document_paths_are_allowed_but_traversal_is_never_linked():
+    forms = [
+        ("10-K", "0001287750-26-000003", "2026-02-10", "xslF345X03/primary_doc.xml"),
+        ("N-54A", "0001287750-22-000001", "2022-04-02", "../../other.htm"),
+    ]
+    out = mod.parse_submissions(submission(forms=forms), expected_cik=CIK, fetched_at=NOW)
+    assert out.filings[0].document_url.endswith("xslF345X03/primary_doc.xml")
+    assert out.filings[1].document_url is None
