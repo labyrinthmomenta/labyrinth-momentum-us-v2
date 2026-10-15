@@ -72,3 +72,5 @@ jobs:
 # Diagnose unexpected SEC EFFECT XML by preserving quarantine source SHA bytes.
 
 # Reproduce A5i after test fixture update.
+
+# Reproduce A5i source evidence validation.
