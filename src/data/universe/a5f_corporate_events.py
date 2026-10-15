@@ -33,7 +33,14 @@ INTER_REQUEST_SECONDS = 0.75
 WATCH_PATTERNS = {
     "MERGER_OR_ACQUISITION_LANGUAGE": r"\b(?:merger|merge(?:d|s)?|business combination|acquisition|reorganization)\b",
     "LISTING_OR_DELISTING_LANGUAGE": r"\b(?:delist(?:ed|ing)?|notice of noncompliance|trading suspension|transfer of listing|exchange listing)\b",
-    "TICKER_OR_SHARE_CLASS_LANGUAGE": r"\b(?:ticker symbol|trading symbol|share class|class of common|reclassification|stock split|reverse split)\b",
+    # SEC 8-K cover pages always contain "Trading Symbol(s)": exclude
+    # that boilerplate and require words pointing to an actual *change*.
+    "TICKER_OR_SHARE_CLASS_LANGUAGE": (
+        r"\b(?:change(?:d|s)? (?:its |the |our )?(?:ticker|trading) symbol"
+        r"|new trading symbol|trade under (?:a |the )?new symbol"
+        r"|share class change|class reclassification|reclassification"
+        r"|stock split|reverse split)\b"
+    ),
     "CHARTER_OR_GOVERNANCE_LANGUAGE": r"\b(?:articles of incorporation|certificate of incorporation|bylaws|by-laws|charter amendment)\b",
     "BDC_ELECTION_OR_WITHDRAWAL_LANGUAGE": r"\b(?:n-54c|withdraw(?:al|ing|n)?\s+(?:of\s+)?(?:its\s+|the\s+)?election|cease(?:d)? to be (?:regulated|treated) as a business development company)\b",
 }
@@ -111,9 +118,12 @@ def analyze_eight_k(raw: bytes) -> dict:
     high_priority_words = any(
         k in signal_snippets for k in (
             "LISTING_OR_DELISTING_LANGUAGE", "TICKER_OR_SHARE_CLASS_LANGUAGE",
-            "BDC_ELECTION_OR_WITHDRAWAL_LANGUAGE"
+            "BDC_ELECTION_OR_WITHDRAWAL_LANGUAGE",
+            "MERGER_OR_ACQUISITION_LANGUAGE",
         )
     )
+    priority = ("HIGH" if high_priority_item or high_priority_words
+                else "ELEVATED" if "1.01" in review_items else "NORMAL")
     return {
         "sha256": sha256(raw).hexdigest(),
         "document_bytes": len(raw),
@@ -121,7 +131,7 @@ def analyze_eight_k(raw: bytes) -> dict:
         "item_headings_observed": found_items,
         "item_review_labels": {i: ITEM_LABELS[i] for i in review_items},
         "risk_language_review_snippets": signal_snippets,
-        "manual_review_priority": "HIGH" if high_priority_item or high_priority_words else "NORMAL",
+        "manual_review_priority": priority,
         "important_limitation": (
             "Boilerplate, negation, forward-looking language, exhibits and "
             "quoted text can trigger signals; none prove an event occurred."
