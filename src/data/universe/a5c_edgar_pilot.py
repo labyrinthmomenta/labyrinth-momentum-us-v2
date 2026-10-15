@@ -120,11 +120,15 @@ def parse_submissions(raw: bytes, *, expected_cik: str, fetched_at: datetime) ->
             raise EdgarEvidenceError("SEC accession invalid")
         if not isinstance(doc, str):
             raise EdgarEvidenceError("SEC primary document malformed")
-        if doc and not re.fullmatch(r"[a-zA-Z0-9._-]+", doc):
-            raise EdgarEvidenceError("SEC primary document path unsafe")
         if form in DOCUMENT_FORMS and filed <= CUTOFF:
+            # SEC primaryDocument can be a SAFE relative subfolder path,
+            # e.g. xslF345X03/primary_doc.xml. Never allow traversal,
+            # absolute paths, protocols, query strings or encoded escapes.
+            safe = bool(doc and re.fullmatch(
+                r"[a-zA-Z0-9._-]+(?:/[a-zA-Z0-9._-]+)*", doc)
+                and all(part not in (".", "..") for part in doc.split("/")))
             path = (f"https://www.sec.gov/Archives/edgar/data/{int(expected_cik)}/"
-                    f"{accession.replace('-', '')}/{doc}") if doc else None
+                    f"{accession.replace('-', '')}/{doc}") if safe else None
             records.append(Filing(form, accession, day, path))
     records.sort(key=lambda f: (f.filing_date, f.accession), reverse=True)
     return Submissions(expected_cik, filer, sha256(raw).hexdigest(),
