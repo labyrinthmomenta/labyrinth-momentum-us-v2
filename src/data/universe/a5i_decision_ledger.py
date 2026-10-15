@@ -252,6 +252,9 @@ def run(a4: Path, a5: Path, a5h: Path, out: Path, *, agent: str,
             raw = fetcher(item["url"], agent, cap=item["cap"], cik=item["cik"],
                           accession=item["accession"])
             if item["label"] == "LIEN_SEC_EFFECT_XML":
+                # Preserve the official SEC response for audit even if its
+                # format is unexpected. Unverified bytes never gain approval.
+                (out / f"QUARANTINE_EFFECT_{sha256(raw).hexdigest()}.source").write_bytes(raw)
                 inspected = inspect_effect(raw)
             else:
                 inspected = inspect_financial(raw, expected_tickers=["REFI"])
