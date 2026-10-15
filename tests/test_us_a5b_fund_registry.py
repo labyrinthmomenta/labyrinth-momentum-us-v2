@@ -141,3 +141,15 @@ def test_sec_optional_empty_fund_ticker_is_retained_but_not_matchable():
     assert output["fund_ticker_match_status_counts"] == {
         "NOT_IN_SEC_FUND_TICKER_FILE": 1010,
     }
+
+
+def test_cli_rejects_unpinned_a5_queue_before_any_sec_processing(tmp_path, monkeypatch):
+    import sys
+    from src.data.universe.a5b_fund_review import main
+    fake = tmp_path / "instrument-review.json"
+    fake.write_text("[]")
+    monkeypatch.setattr(sys, "argv", ["fund-review", "--a5-instrument-review", str(fake),
+                                      "--sec-fund-capture", str(tmp_path / "missing"),
+                                      "--output", str(tmp_path / "out")])
+    assert main() == 2
+    assert not (tmp_path / "out").exists()
