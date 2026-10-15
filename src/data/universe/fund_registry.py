@@ -69,7 +69,7 @@ def parse_funds(raw: bytes, retrieved_at: datetime) -> FundSnapshot:
             raise FundEvidenceError("SEC fund CIK outside range")
         if (not isinstance(series, str) or not re.fullmatch(r"S[0-9]{9}", series)
                 or not isinstance(klass, str) or not re.fullmatch(r"C[0-9]{9}", klass)
-                or not isinstance(symbol, str) or not symbol.strip() or symbol != symbol.strip()):
+                or not isinstance(symbol, str) or symbol != symbol.strip()):
             raise FundEvidenceError("SEC fund class/series/ticker invalid")
         key = (num, series, klass, symbol)
         if key in seen:
@@ -106,7 +106,8 @@ def capture_funds(output: Path, user_agent: str, *, fetcher=fetch_funds,
         receipt = {"url": SOURCE, "sha256": digest,
                    "retrieved_at": timestamp.isoformat(), "validated": False}
         parsed = parse_funds(raw, timestamp)
-        receipt.update(validated=True, classes=len(parsed.classes))
+        receipt.update(validated=True, classes=len(parsed.classes),
+                       classes_without_ticker=sum(not item.ticker for item in parsed.classes))
     except (OSError, ValueError, TimeoutError) as exc:
         errors.append(f"{type(exc).__name__}: {exc}")
     result = {"status": "CAPTURE_VALIDATED" if not errors else "SOURCE_REJECTED",
@@ -129,7 +130,8 @@ def load_funds(folder: Path) -> FundSnapshot:
     if hashlib.sha256(raw).hexdigest() != digest:
         raise FundEvidenceError("SEC fund capture SHA mismatch")
     parsed = parse_funds(raw, datetime.fromisoformat(receipt["retrieved_at"]))
-    if receipt["classes"] != len(parsed.classes):
+    if (receipt["classes"] != len(parsed.classes)
+            or receipt.get("classes_without_ticker") != sum(not x.ticker for x in parsed.classes)):
         raise FundEvidenceError("SEC fund count mismatch")
     return parsed
 
