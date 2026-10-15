@@ -138,7 +138,14 @@ def parse_submissions_timeline(raw: bytes, *, cik: str, retrieved_at: datetime) 
         data = json.loads(raw.decode("utf-8-sig"))
     except (ValueError, UnicodeError) as exc:
         raise A5hEvidenceError("Malformed SEC submissions JSON") from exc
-    if not isinstance(data, dict) or str(data.get("cik")) != str(int(cik)):
+    if not isinstance(data, dict):
+        raise A5hEvidenceError("SEC submissions filer identity mismatch")
+    sec_cik = data.get("cik")
+    if (type(sec_cik) not in (str, int)
+            or not str(sec_cik).isascii()
+            or not str(sec_cik).isdecimal()
+            or not 1 <= int(sec_cik) <= 9999999999
+            or f"{int(sec_cik):010d}" != cik):
         raise A5hEvidenceError("SEC submissions filer identity mismatch")
     forms = data.get("filings")
     if not isinstance(forms, dict) or not isinstance(forms.get("recent"), dict):
