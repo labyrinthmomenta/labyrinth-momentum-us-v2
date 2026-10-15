@@ -1,0 +1,52 @@
+name: One-time A5h SEC exhibits and LIEN-REFI timeline
+on:
+  push:
+    branches:
+      - feature/a5h-remaining-exhibits-merger-timeline
+    paths:
+      - .github/workflows/a5h-sec-exhibits-timeline.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  a5h-review-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Full offline tests and fail-closed input validation
+        run: python -m pytest -q
+      - name: Restore frozen A5g 34 original SEC indexes and 17 exhibits
+        uses: actions/download-artifact@v4
+        with:
+          name: a5g-sec-exhibit-and-merger-sources
+          run-id: 38734298003
+          repository: labyrinthmomenta/labyrinth-momentum-us-v2
+          github-token: ${{ github.token }}
+          path: runtime/a5g
+      - name: Identify responsible SEC data requester
+        shell: bash
+        run: |
+          email="$(git log -1 --format=%ae)"
+          if [[ "$email" != *"@"* ]]; then
+            echo 'SEC identifying contact unavailable'; exit 2
+          fi
+          echo "SEC_USER_AGENT=LabyrinthMomentumUSV2 A5h-Review $email" >> "$GITHUB_ENV"
+      - name: Capture 29 exhibits and LIEN-REFI SEC form timeline, no approvals
+        run: |
+          python -m src.data.universe.a5h_remaining_exhibits \
+            --a5g-artifact runtime/a5g \
+            --output runtime/a5h
+      - name: Save source JSON, downloaded exhibit documents, N-14 and receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a5h-sec-29-exhibits-and-merger-timeline
+          path: runtime/a5h/
+          if-no-files-found: warn
+          retention-days: 90
