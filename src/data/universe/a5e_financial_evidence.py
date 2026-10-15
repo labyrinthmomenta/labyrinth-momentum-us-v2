@@ -245,6 +245,10 @@ def fetch_financial(url: str, agent: str) -> bytes:
         r"https://www\.sec\.gov/Archives/edgar/data/[1-9][0-9]*/[0-9]{18}/"
         r"[a-zA-Z0-9._-]+(?:/[a-zA-Z0-9._-]+)*", url):
         raise A5eEvidenceError("SEC financial source URL is not approved")
+    # Never send even a nominally approved SEC URL containing path traversal.
+    relative_path = url.split("/Archives/edgar/data/", 1)[1] if "/Archives/edgar/data/" in url else ""
+    if any(segment in (".", "..") for segment in relative_path.split("/")):
+        raise A5eEvidenceError("SEC financial path traversal rejected")
     from urllib.request import Request, build_opener
     from .sec_capture import NoRedirect
     request = Request(url, headers={"User-Agent": validate_user_agent(agent),
