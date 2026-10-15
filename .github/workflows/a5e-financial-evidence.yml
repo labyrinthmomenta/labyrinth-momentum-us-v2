@@ -1,0 +1,62 @@
+name: One-time A5e official SEC current BDC report audit
+on:
+  push:
+    branches:
+      - feature/a5e-current-bdc-and-security-class
+    paths:
+      - .github/workflows/a5e-financial-evidence.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  a5e-financial:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install offline test requirements
+        run: python -m pip install -r requirements-dev.txt
+      - name: Run all regressions
+        run: python -m pytest -q
+      - name: Recover frozen A5c raw SEC submissions
+        uses: actions/download-artifact@v4
+        with:
+          name: a5c-edgar-complete-evidence-sweep
+          run-id: 38703798184
+          repository: labyrinthmomenta/labyrinth-momentum-us-v2
+          github-token: ${{ github.token }}
+          path: runtime/a5c
+      - name: Recover original 17 SEC N-54A documents
+        uses: actions/download-artifact@v4
+        with:
+          name: a5d-n54a-primary-document-evidence
+          run-id: 38706374436
+          repository: labyrinthmomenta/labyrinth-momentum-us-v2
+          github-token: ${{ github.token }}
+          path: runtime/a5d
+      - name: Identify SEC research contact
+        shell: bash
+        run: |
+          email="$(git log -1 --format=%ae)"
+          if [[ "$email" != *"@"* ]]; then
+            echo 'SEC research contact unavailable'; exit 2
+          fi
+          echo "SEC_USER_AGENT=LabyrinthMomentumUSV2 10Q-SecurityEvidence $email" >> "$GITHUB_ENV"
+      - name: Capture latest 16 eligible 10-K or 10-Q filings, no publication
+        run: |
+          python -m src.data.universe.a5e_financial_evidence \
+            --a5c-artifact runtime/a5c \
+            --a5d-artifact runtime/a5d \
+            --output runtime/a5e
+      - name: Store evidence documents and SHA256 review result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a5e-sec-10q-bdc-and-share-class-evidence
+          path: runtime/a5e/
+          if-no-files-found: warn
+          retention-days: 90
