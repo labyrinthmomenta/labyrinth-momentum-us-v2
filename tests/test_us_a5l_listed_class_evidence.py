@@ -52,7 +52,7 @@ def test_other_ticker_and_wrong_exchange_are_rejected():
 def test_class_text_in_disconnected_row_not_counted():
     raw=(b"<html><table><tr><td>Class A ordinary shares</td></tr>"
          b"<tr><td>AACI</td><td>The Nasdaq Stock Market LLC</td></tr>"
-         b"</table></html>")
+         b"</table><p>Unrelated SEC reporting content.</p>"*6+b"</html>")
     assert mod.extract_security_rows(raw,ticker="AACI",mic="XNAS")==[]
 
 
