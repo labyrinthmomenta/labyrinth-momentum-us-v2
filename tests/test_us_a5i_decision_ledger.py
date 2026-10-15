@@ -5,9 +5,11 @@ from src.data.universe import a5i_decision_ledger as mod
 
 NOW = datetime(2026, 10, 15, 15, 30, tzinfo=timezone.utc)
 AGENT = "Labyrinth Research researcher@example.org"
-EFFECT = (b'<?xml version="1.0"?><edgarSubmission><form>EFFECT</form>'
-          b'<notice>Notice of Effectiveness for Registration Statement</notice>'
-          b'</edgarSubmission>')
+EFFECT = (b'<html><head><title>Notice of Effectiveness</title></head><body>'
+          b'<p>SECURITIES AND EXCHANGE COMMISSION</p>'
+          b'<p>Notice of Effectiveness</p><p>Form: N-2</p>'
+          b'<p>CIK: 0001843162</p><p>File Number: 333-295756</p>'
+          b'</body></html>')
 SEC_10Q = (b"<html><body><h1>FORM 10-Q</h1>"
            b"<p>QUARTERLY REPORT PURSUANT TO SECTION 13</p>"
            b"<table><tr><th>Class</th><th>Symbol</th><th>Exchange</th></tr>"
@@ -45,8 +47,8 @@ def test_1010_held_without_refi_automatic_inclusion():
 
 def test_effect_xml_is_not_merger_closing():
     result=mod.inspect_effect(EFFECT)
-    assert result["text_effectiveness_signal"]
-    assert result["registration_effectiveness_only"]
+    assert result["registration_form"]=="N-2" and result["file_number"]=="333-295756"
+    assert result["n14_effectiveness_confirmed"] is False
     assert result["merger_closing_verified"] is False
     assert result["production_eligible"] is False
 
@@ -114,3 +116,12 @@ def test_sec_cross_issuer_url_refused():
         mod.fetch_sec_file(
             "https://www.sec.gov/Archives/edgar/data/1843162/999999999526003107/../bad.xml",
             AGENT,cap=1000,cik=mod.LIEN_CIK,accession=mod.EFFECT_ACC)
+
+
+def test_proper_xml_notice_with_same_sec_identifiers_is_supported():
+    raw=(b'<SEC><head>SECURITIES AND EXCHANGE COMMISSION Notice of Effectiveness</head>'
+         b'<form>Form: N-2</form><cik>CIK: 0001843162</cik>'
+         b'<file>File Number: 333-295756</file></SEC>')
+    out=mod.inspect_effect(raw)
+    assert out["registration_form"]=="N-2"
+    assert out["merger_closing_verified"] is False
