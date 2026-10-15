@@ -1,0 +1,63 @@
+name: One-time A5j official type evidence and release gate
+on:
+  push:
+    branches:
+      - feature/a5j-type-evidence-release-gate
+    paths:
+      - .github/workflows/a5j-type-release-gate.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  a5j-source-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install offline regression dependencies
+        run: python -m pip install -r requirements-dev.txt
+      - name: Run entire offline test suite
+        run: python -m pytest -q
+      - name: Restore frozen A5i 1010-record review decision source
+        uses: actions/download-artifact@v4
+        with:
+          name: a5i-evidence-gated-decision-ledger
+          run-id: 38740703627
+          repository: labyrinthmomenta/labyrinth-momentum-us-v2
+          github-token: ${{ github.token }}
+          path: runtime/a5i
+      - name: Restore frozen SEC 28589-class mutual fund registry comparison
+        uses: actions/download-artifact@v4
+        with:
+          name: a5b-sec-fund-type-evidence
+          run-id: 38688288380
+          repository: labyrinthmomenta/labyrinth-momentum-us-v2
+          github-token: ${{ github.token }}
+          path: runtime/a5b
+      - name: Restore original 16 SEC 10-Q financial source filings
+        uses: actions/download-artifact@v4
+        with:
+          name: a5e-sec-10q-bdc-and-share-class-evidence
+          run-id: 38728679096
+          repository: labyrinthmomenta/labyrinth-momentum-us-v2
+          github-token: ${{ github.token }}
+          path: runtime/a5e
+      - name: Validate raw source SHA and write 1010-row triage plus deny-only gate
+        run: |
+          python -m src.data.universe.a5j_type_release \
+            --a5i-artifact runtime/a5i \
+            --a5b-artifact runtime/a5b \
+            --a5e-artifact runtime/a5e \
+            --output runtime/a5j
+      - name: Preserve evidence triage and deny-only gate result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a5j-type-triage-release-deny-simulation
+          path: runtime/a5j/
+          if-no-files-found: warn
+          retention-days: 90
