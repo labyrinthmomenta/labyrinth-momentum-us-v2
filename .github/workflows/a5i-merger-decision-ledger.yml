@@ -1,0 +1,76 @@
+name: One-time A5i SEC merger decision ledger
+on:
+  push:
+    branches:
+      - feature/a5i-merger-decision-ledger
+    paths:
+      - .github/workflows/a5i-merger-decision-ledger.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  decision-ledger:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Run all regressions first
+        run: python -m pytest -q
+      - name: Restore 14 October A4 Nasdaq source and all 13287 decisions
+        uses: actions/download-artifact@v4
+        with:
+          name: a4-sec-directory-audit
+          run-id: 38629237276
+          repository: labyrinthmomenta/labyrinth-momentum-us-v2
+          github-token: ${{ github.token }}
+          path: runtime/a4
+      - name: Restore 1010 original A5 review entries
+        uses: actions/download-artifact@v4
+        with:
+          name: a5-venue-and-instrument-evidence
+          run-id: 38633103264
+          repository: labyrinthmomenta/labyrinth-momentum-us-v2
+          github-token: ${{ github.token }}
+          path: runtime/a5
+      - name: Restore A5h LIEN/REFI issuer and SEC primary documents
+        uses: actions/download-artifact@v4
+        with:
+          name: a5h-sec-29-exhibits-and-merger-timeline
+          run-id: 38737013765
+          repository: labyrinthmomenta/labyrinth-momentum-us-v2
+          github-token: ${{ github.token }}
+          path: runtime/a5h
+      - name: Assign SEC fair-access contact
+        shell: bash
+        run: |
+          email="$(git log -1 --format=%ae)"
+          if [[ "$email" != *"@"* ]]; then
+            echo 'SEC contact missing'; exit 2
+          fi
+          echo "SEC_USER_AGENT=LabyrinthMomentumUSV2 A5i-EvidenceLedger $email" >> "$GITHUB_ENV"
+      - name: Verify all sources and collect SEC EFFECT XML plus REFI 10-Q
+        run: |
+          python -m src.data.universe.a5i_decision_ledger \
+            --a4-artifact runtime/a4 \
+            --a5-artifact runtime/a5 \
+            --a5h-artifact runtime/a5h \
+            --output runtime/a5i
+      - name: Preserve evidence ledger, SEC sources and immutable hashes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a5i-evidence-gated-decision-ledger
+          path: runtime/a5i/
+          if-no-files-found: warn
+          retention-days: 90
+
+# Diagnose unexpected SEC EFFECT XML by preserving quarantine source SHA bytes.
+
+# Reproduce A5i after test fixture update.
+
+# Reproduce A5i source evidence validation.
