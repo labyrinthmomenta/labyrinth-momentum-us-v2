@@ -52,3 +52,5 @@ jobs:
           path: runtime/a5c/
           if-no-files-found: warn
           retention-days: 90
+
+# Re-run with safe SEC EDGAR relative document path validation.
