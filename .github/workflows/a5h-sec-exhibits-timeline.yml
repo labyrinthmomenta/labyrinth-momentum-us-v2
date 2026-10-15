@@ -50,3 +50,5 @@ jobs:
           path: runtime/a5h/
           if-no-files-found: warn
           retention-days: 90
+
+# Re-run after validating official SEC CIK can be a zero-padded string.
