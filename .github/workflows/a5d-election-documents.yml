@@ -51,3 +51,5 @@ jobs:
           path: runtime/a5d/
           if-no-files-found: warn
           retention-days: 90
+
+# A5d document run: detect plural 'sections 55' in official election form text.
