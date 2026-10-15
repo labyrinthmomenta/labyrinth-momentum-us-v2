@@ -24,7 +24,7 @@ jobs:
       - name: Restore 14 October A4 Nasdaq source and all 13287 decisions
         uses: actions/download-artifact@v4
         with:
-          name: a4-official-sec-full-audit
+          name: a4-sec-directory-audit
           run-id: 38629237276
           repository: labyrinthmomenta/labyrinth-momentum-us-v2
           github-token: ${{ github.token }}
