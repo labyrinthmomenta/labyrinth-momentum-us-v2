@@ -113,6 +113,7 @@ def analyze_eight_k(raw: bytes) -> dict:
             "LISTING_OR_DELISTING_LANGUAGE", "TICKER_OR_SHARE_CLASS_LANGUAGE",
             "BDC_ELECTION_OR_WITHDRAWAL_LANGUAGE"
         )
+    )
     return {
         "sha256": sha256(raw).hexdigest(),
         "document_bytes": len(raw),
