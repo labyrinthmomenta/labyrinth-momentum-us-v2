@@ -1,0 +1,54 @@
+name: One-time A5l SEC listed-security class evidence
+on:
+  push:
+    branches:
+      - feature/a5l-listed-class-evidence
+    paths:
+      - .github/workflows/a5l-sec-listed-class.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  class-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install regression dependencies
+        run: python -m pip install -r requirements-dev.txt
+      - name: Verify all offline regressions and fail closed paths
+        run: python -m pytest -q
+      - name: Restore nine SEC original source documents and issuer receipts from A5k
+        uses: actions/download-artifact@v4
+        with:
+          name: a5k-9-issuer-sec-type-pilot
+          run-id: 38763550078
+          repository: labyrinthmomenta/labyrinth-momentum-us-v2
+          github-token: ${{ github.token }}
+          path: runtime/a5k-sec
+      - name: Restore full 13,287 official-source release-deny ledger
+        uses: actions/download-artifact@v4
+        with:
+          name: a5k-official-full-universe-deny
+          run-id: 38763550078
+          repository: labyrinthmomenta/labyrinth-momentum-us-v2
+          github-token: ${{ github.token }}
+          path: runtime/a5k-full
+      - name: Re-verify frozen SHA bytes and extract 9 class-evidence candidates
+        run: |
+          python -m src.data.universe.a5l_listed_class_evidence \
+            --a5k-sec runtime/a5k-sec \
+            --a5k-universe runtime/a5k-full \
+            --output runtime/a5l
+      - name: Save review-only SEC share-class source receipts and row evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a5l-sec-nine-listed-class-evidence
+          path: runtime/a5l/
+          if-no-files-found: warn
+          retention-days: 90
