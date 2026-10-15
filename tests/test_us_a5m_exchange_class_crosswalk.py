@@ -153,6 +153,8 @@ def test_exact_15_crosswalk_and_six_spac_siblings(monkeypatch, tmp_path):
     }
     assert all(x["original_A4_decision"] == "EXCLUDE" for x in
                result["SPAC_sibling_separate_instruments"])
+    assert all(x["same_security_id_as_parent_proven"] is False for x in
+               result["SPAC_sibling_separate_instruments"])
 
 
 @pytest.mark.parametrize("mutation", [
