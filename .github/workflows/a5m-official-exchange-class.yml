@@ -1,0 +1,56 @@
+name: One-time A5m SEC and Nasdaq official class crosswalk
+on:
+  push:
+    branches:
+      - feature/a5m-official-exchange-class-crosswalk
+    paths:
+      - .github/workflows/a5m-official-exchange-class.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  frozen-evidence-replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install offline test requirements
+        run: python -m pip install -r requirements-dev.txt
+      - name: Run all 256+ regressions before evidence replay
+        run: python -m pytest -q
+      - name: Recover Nasdaq/SEC original 14 October directory and A4 review
+        uses: actions/download-artifact@v4
+        with:
+          name: a4-sec-directory-audit
+          run-id: 38629237276
+          repository: labyrinthmomenta/labyrinth-momentum-us-v2
+          github-token: ${{ github.token }}
+          path: runtime/a4
+      - name: Recover nine SEC listed-class source proofs from A5l
+        uses: actions/download-artifact@v4
+        with:
+          name: a5l-sec-nine-listed-class-evidence
+          run-id: 38797915978
+          repository: labyrinthmomenta/labyrinth-momentum-us-v2
+          github-token: ${{ github.token }}
+          path: runtime/a5l
+      - name: Validate exact 13287 listing names, CIK vs ticker classes and six SPAC sibling instruments
+        run: |
+          python -m src.data.universe.a5m_exchange_class_crosswalk \
+            --a4 runtime/a4 \
+            --a5l runtime/a5l \
+            --output runtime/a5m
+      - name: Preserve A5m review-only official source crosswalk and receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a5m-official-sec-nasdaq-class-crosswalk
+          path: runtime/a5m/
+          if-no-files-found: warn
+          retention-days: 90
+
+# Re-run final full source crosswalk after permanent security identity wording guard.
