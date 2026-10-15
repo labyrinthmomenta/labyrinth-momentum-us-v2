@@ -60,3 +60,5 @@ jobs:
           path: runtime/a5e/
           if-no-files-found: warn
           retention-days: 90
+
+# Revalidate SEC 10-Q evidence after strict link/path safety tests pass.
