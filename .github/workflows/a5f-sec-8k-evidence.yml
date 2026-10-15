@@ -1,0 +1,57 @@
+name: One-time A5f SEC 8-K document evidence
+on:
+  push:
+    branches:
+      - feature/a5f-8k-corporate-event-evidence
+    paths:
+      - .github/workflows/a5f-sec-8k-evidence.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  corporate-events:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install test dependencies
+        run: python -m pip install -r requirements-dev.txt
+      - name: All offline regressions including 8-K negation and SEC URL controls
+        run: python -m pytest -q
+      - name: Recover 16 SEC financial reports and verified A5e evidence snapshot
+        uses: actions/download-artifact@v4
+        with:
+          name: a5e-sec-10q-bdc-and-share-class-evidence
+          run-id: 38728679096
+          repository: labyrinthmomenta/labyrinth-momentum-us-v2
+          github-token: ${{ github.token }}
+          path: runtime/a5e
+      - name: Identify SEC research source contact
+        shell: bash
+        run: |
+          email="$(git log -1 --format=%ae)"
+          if [[ "$email" != *"@"* ]]; then
+            echo 'SEC research contact cannot be established'; exit 2
+          fi
+          echo "SEC_USER_AGENT=LabyrinthMomentumUSV2 A5f-CorporateEvents $email" >> "$GITHUB_ENV"
+      - name: Capture 40 official SEC 8-K primary source documents for review
+        run: |
+          python -m src.data.universe.a5f_corporate_events \
+            --a5e-artifact runtime/a5e \
+            --output runtime/a5f
+      - name: Preserve audit evidence and original SEC documents
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a5f-sec-8k-original-evidence
+          path: runtime/a5f/
+          if-no-files-found: warn
+          retention-days: 90
+
+# A5f final live run after 172 green regression tests and event-language guards.
+
+# Rerun after explicitly excluding 8-K cover-page Trading Symbol(s) boilerplate.
