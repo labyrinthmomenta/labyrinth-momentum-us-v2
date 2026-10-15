@@ -90,7 +90,7 @@ def test_complete_mock_capture_preserves_independent_issuer_and_security_states(
     refi=next(x for x in result["merger_company_evidence_overlays"] if x["symbol"]=="REFI")
     assert refi["a4_original_decision"]=="INCLUDE" and refi["explicit_release_hold"]
     assert refi["merger_completion"]=="NOT_ESTABLISHED"
-    assert len(list((tmp_path/"ok").glob("*.source")))==2
+    assert len(list((tmp_path/"ok").glob("*.source")))==3  # verified sources plus quarantine copy
 
 
 def test_sec_denial_is_partial_never_auto_approved(monkeypatch,tmp_path):
