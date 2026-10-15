@@ -140,7 +140,7 @@ def test_original_review_reason_mutation_fails_closed():
 def test_wrong_issuer_CIK_crosswalk_blocks_security_identity():
     i,b,e=fixture()
     e["findings"][0]["cik"]="0001999999"
-    with pytest.raises(mod.A5jEvidenceError, match="issuer"):
+    with pytest.raises(mod.A5jEvidenceError, match="Issuer"):
         mod.build_triage(i,b,e)
 
 
