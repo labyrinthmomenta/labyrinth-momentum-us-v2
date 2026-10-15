@@ -1,0 +1,52 @@
+name: One-time A5c full SEC EDGAR issuer evidence sweep
+on:
+  push:
+    branches:
+      - feature/a5c-edgar-submissions-evidence
+    paths:
+      - .github/workflows/a5c-edgar-full.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  full-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Test safety and parser boundary first
+        run: python -m pytest -q
+      - uses: actions/download-artifact@v4
+        with:
+          name: a5-venue-and-instrument-evidence
+          run-id: 38633103264
+          repository: labyrinthmomenta/labyrinth-momentum-us-v2
+          github-token: ${{ github.token }}
+          path: runtime/a5
+      - name: Identifying SEC data contact from repository author metadata
+        shell: bash
+        run: |
+          email="$(git log -1 --format=%ae)"
+          if [[ "$email" != *"@"* ]]; then
+            echo 'Missing SEC identifying contact'; exit 2
+          fi
+          echo "SEC_USER_AGENT=LabyrinthMomentumUSV2 FullEDGARResearch $email" >> "$GITHUB_ENV"
+      - name: SEC EDGAR full candidate cohort at less than two requests per second
+        run: |
+          python -m src.data.universe.a5c_edgar_pilot \
+            --a5-instrument-review runtime/a5/instrument-review.json \
+            --output runtime/a5c-full \
+            --limit 307
+      - name: Preserve all verified raw SEC JSONs and evidence receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a5c-edgar-complete-evidence-sweep
+          path: runtime/a5c-full/
+          if-no-files-found: warn
+          retention-days: 90
