@@ -311,12 +311,12 @@ def audit(a5g: Path, out: Path, *, agent: str, fetcher=retrieve_official,
         if n14:
             try:
                 raw = fetch_one(n14["primary_document_url"], MAX_REGISTRATION_BYTES)
-                evidence = inspect_registration(raw)
+                registration_evidence = inspect_registration(raw)
                 at = clock()
-                file = (f"LIEN-N14-{n14['accession']}-{evidence['sha256']}.html")
+                file = (f"LIEN-N14-{n14['accession']}-{registration_evidence['sha256']}.html")
                 (out / file).write_bytes(raw)
                 registration_documents.append({
-                    "cik": LIEN_CIK, **n14, **evidence, "original_file": file,
+                    "cik": LIEN_CIK, **n14, **registration_evidence, "original_file": file,
                     "retrieved_at": at.isoformat(),
                     "status": "N14_PRIMARY_DOC_REVIEW_ONLY",
                 })
