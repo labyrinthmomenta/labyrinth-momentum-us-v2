@@ -41,7 +41,7 @@ Kaynak alım zamanı 15 Ekim, filingDate 14 Ekim veya öncesi.
 33 post-10-Q Item 9.01 dizininden **birinde (CION, accession
 \`0001104659-26-108606\`)** SEC "Document Format Files" tablosunda
 EX-* türü kayda rastlanmadı. Bu, eksik ek bulunmadığı veya CION'da
-olay olmadığı anlamına gelmez. Diğer 28 öncelik dışı exhibit
+olay olmadığı anlamına gelmez. Öncelik dışı başvurulardaki 29 exhibit
 sadece metaveri olarak saklandı; **toplam 29 kaynak içeriği açık**.
 
 ## 3. LIEN–REFI — öncelikli birleşme incelemesi
