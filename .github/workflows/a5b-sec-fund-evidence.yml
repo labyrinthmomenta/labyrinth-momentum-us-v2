@@ -1,0 +1,57 @@
+name: One-time A5b SEC fund class evidence
+on:
+  push:
+    branches:
+      - feature/a5b-sec-fund-type-evidence
+    paths:
+      - .github/workflows/a5b-sec-fund-evidence.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  sec-fund-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Baseline and fund-registry offline tests
+        run: python -m pytest -q
+      - name: Identify research contact for SEC fair access
+        shell: bash
+        run: |
+          email="$(git log -1 --format=%ae)"
+          if [[ "$email" != *"@"* ]]; then
+            echo 'Missing SEC contact address'; exit 2
+          fi
+          echo "SEC_USER_AGENT=LabyrinthMomentumUSV2 FundEvidence $email" >> "$GITHUB_ENV"
+      - name: Reuse immutable A5 instrument review (not newly inferred universe)
+        uses: actions/download-artifact@v4
+        with:
+          name: a5-venue-and-instrument-evidence
+          run-id: 38633103264
+          repository: labyrinthmomenta/labyrinth-momentum-us-v2
+          github-token: ${{ github.token }}
+          path: runtime/a5
+      - name: Capture bounded SEC fund-class ticker registry
+        run: |
+          python -m src.data.universe.fund_registry \
+            --output runtime/a5b/sec-fund-capture
+      - name: Cross-check all 1,010 reviews; no issuer/security auto approval
+        run: |
+          python -m src.data.universe.a5b_fund_review \
+            --a5-instrument-review runtime/a5/instrument-review.json \
+            --sec-fund-capture runtime/a5b/sec-fund-capture \
+            --output runtime/a5b/report
+      - name: Preserve SEC fund receipt, snapshot, and 1,010 review evidence rows
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a5b-sec-fund-type-evidence
+          path: runtime/a5b/
+          if-no-files-found: warn
+          retention-days: 90
