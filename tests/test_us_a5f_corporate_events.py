@@ -202,3 +202,33 @@ def test_blocked_SEC_document_is_reported_not_called_safe(tmp_path, monkeypatch)
     assert report["primary_documents_verified"] == 0
     assert len(report["source_failures"]) == 3
     assert report["production_approvals"] == 0
+
+
+def test_standard_SEC_trading_symbol_cover_page_is_not_corporate_change():
+    cover = (
+        b"<html><body><h1>FORM 8-K</h1>"
+        b"<p>Securities registered pursuant to Section 12(b) of the Act:</p>"
+        b"<table><tr><th>Title of Each Class</th><th>Trading Symbol(s)</th>"
+        b"<th>Name of Each Exchange on Which Registered</th></tr>"
+        b"<tr><td>Common Stock</td><td>GAIN</td><td>Nasdaq</td></tr></table>"
+        + b"<p>Item 2.02 Results of Operations.</p>" * 10
+        + b"</body></html>"
+    )
+    out = mod.analyze_eight_k(cover)
+    assert "TICKER_OR_SHARE_CLASS_LANGUAGE" not in out["risk_language_review_snippets"]
+    assert out["manual_review_priority"] == "NORMAL"
+    assert out["event_occurred_confirmed"] is False
+
+
+def test_proposed_merger_language_is_review_only_even_when_specific():
+    html = (
+        b"<html><body>Form 8-K"
+        b"<p>Item 7.01 Regulation FD Disclosure</p>"
+        b"<p>The registrant announced a proposed merger between Example BDC"
+        b" and Other Fund, subject to shareholder approval.</p>" * 8
+        b"</body></html>"
+    )
+    out = mod.analyze_eight_k(html)
+    assert "MERGER_OR_ACQUISITION_LANGUAGE" in out["risk_language_review_snippets"]
+    assert out["manual_review_priority"] == "HIGH"
+    assert out["event_occurred_confirmed"] is False
