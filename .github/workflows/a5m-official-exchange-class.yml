@@ -52,3 +52,5 @@ jobs:
           path: runtime/a5m/
           if-no-files-found: warn
           retention-days: 90
+
+# Re-run final full source crosswalk after permanent security identity wording guard.
