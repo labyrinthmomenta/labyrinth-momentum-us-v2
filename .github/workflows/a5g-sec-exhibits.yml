@@ -1,0 +1,53 @@
+name: One-time A5g SEC exhibits and LIEN-REFI merger evidence
+on:
+  push:
+    branches:
+      - feature/a5g-sec-exhibit-merger-audit
+    paths:
+      - .github/workflows/a5g-sec-exhibits.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  official-exhibits:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install offline tests
+        run: python -m pip install -r requirements-dev.txt
+      - name: Run regression test suite
+        run: python -m pytest -q
+      - name: Restore pinned A5f 40 SEC 8-K primary source archive
+        uses: actions/download-artifact@v4
+        with:
+          name: a5f-sec-8k-original-evidence
+          run-id: 38731812676
+          repository: labyrinthmomenta/labyrinth-momentum-us-v2
+          github-token: ${{ github.token }}
+          path: runtime/a5f
+      - name: Use an identifying SEC Fair Access User-Agent
+        shell: bash
+        run: |
+          email="$(git log -1 --format=%ae)"
+          if [[ "$email" != *"@"* ]]; then
+            echo 'SEC research contact not configured'; exit 2
+          fi
+          echo "SEC_USER_AGENT=LabyrinthMomentumUSV2 A5g-ExhibitAudit $email" >> "$GITHUB_ENV"
+      - name: Check 33 SEC 9.01 filing indexes and priority/historical LIEN exhibits
+        run: |
+          python -m src.data.universe.a5g_exhibit_merger_evidence \
+            --a5f-artifact runtime/a5f \
+            --output runtime/a5g
+      - name: Save all original SEC indexes, downloaded exhibits and audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a5g-sec-exhibit-and-merger-sources
+          path: runtime/a5g/
+          if-no-files-found: warn
+          retention-days: 90
