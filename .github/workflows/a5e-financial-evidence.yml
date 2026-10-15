@@ -62,3 +62,5 @@ jobs:
           retention-days: 90
 
 # Revalidate SEC 10-Q evidence after strict link/path safety tests pass.
+
+# Rerun with bounded support for oversized official SEC inline-XBRL 10-Q files.
