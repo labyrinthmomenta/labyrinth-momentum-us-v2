@@ -152,3 +152,15 @@ def test_partial_denied_sec_source_remains_review_not_success(monkeypatch, tmp_p
     assert report["exhibits_verified"] == 0
     assert report["production_approved"] == 0
     assert len(report["errors"]) == 3
+
+
+def test_real_SEC_zero_padded_string_cik_is_not_an_identity_mismatch():
+    obj = json.loads(SEC_json(mod.LIEN_CIK))
+    obj["cik"] = "0001843162"
+    output = mod.parse_submissions_timeline(json.dumps(obj).encode(),
+                                            cik=mod.LIEN_CIK, retrieved_at=NOW)
+    assert output["cik"] == mod.LIEN_CIK
+    obj["cik"] = "0001867949"
+    with pytest.raises(mod.A5hEvidenceError, match="identity"):
+        mod.parse_submissions_timeline(json.dumps(obj).encode(),
+                                       cik=mod.LIEN_CIK, retrieved_at=NOW)
