@@ -179,24 +179,45 @@ def fetch_sec_file(url: str, agent: str, *, cap: int, cik: str, accession: str) 
 
 
 def inspect_effect(raw: bytes) -> dict:
-    """EFFECT XML attests to source content only; NOT merger effective time."""
+    """Identify the *registration form* in official SEC EFFECT notice.
+
+    The SEC URL's .xml suffix can serve a rendered HTML Notice of
+    Effectiveness. Critically, 2026-09-30 EFFECT relates to Form N-2,
+    not Form N-14 and never the effective time of a merger.
+    """
     if not isinstance(raw, bytes) or not 35 <= len(raw) <= MAX_EFFECT_BYTES:
-        raise DecisionLedgerError("Empty/oversized SEC EFFECT XML")
+        raise DecisionLedgerError("SEC EFFECT notice empty/oversized")
     if b"<!DOCTYPE" in raw.upper() or b"<!ENTITY" in raw.upper():
         raise DecisionLedgerError("XML DTD/entity not allowed")
-    try:
-        root = ElementTree.fromstring(raw)
-    except ElementTree.ParseError as exc:
-        raise DecisionLedgerError("SEC EFFECT XML parse rejected") from exc
-    plain = " ".join(" ".join(root.itertext()).split()).casefold()
-    if not plain or "effect" not in plain:
-        raise DecisionLedgerError("SEC EFFECT XML does not state effectiveness")
+    if raw.lstrip().lower().startswith(b"<html"):
+        from .a5f_corporate_events import _plain_text
+        plain = " ".join(_plain_text(raw).split())
+    else:
+        try:
+            root = ElementTree.fromstring(raw)
+        except ElementTree.ParseError as exc:
+            raise DecisionLedgerError("Unrecognized SEC EFFECT notice format") from exc
+        plain = " ".join(" ".join(root.itertext()).split())
+    if ("notice of effectiveness" not in plain.casefold()
+            or "securities and exchange commission" not in plain.casefold()):
+        raise DecisionLedgerError("Not a SEC Notice of Effectiveness")
+    form = re.search(r"\bForm\s*:\s*(N-[0-9]+[A-Z]?)\b", plain, re.IGNORECASE)
+    filer = re.search(r"\bCIK\s*:\s*0*(1843162)\b", plain, re.IGNORECASE)
+    number = re.search(r"\bFile Number\s*:\s*([0-9]{3}-[0-9]+)\b", plain, re.IGNORECASE)
+    if not form or not filer or not number:
+        raise DecisionLedgerError("SEC EFFECT issuer/form/file number not proven")
+    registration_form = form.group(1).upper()
+    if registration_form != "N-2":
+        raise DecisionLedgerError("Unexpected registration form in frozen SEC EFFECT")
     return {"sha256": sha256(raw).hexdigest(), "bytes": len(raw),
-            "xml_root": root.tag, "text_effectiveness_signal": True,
-            "registration_effectiveness_only": True,
-            "merger_closing_verified": False, "share_class_approved": False,
-            "production_eligible": False}
-
+            "SEC_notice_type": "Notice of Effectiveness",
+            "registration_form": registration_form,
+            "file_number": number.group(1),
+            "issuer_cik": LIEN_CIK,
+            "registration_effectiveness_notice_verified": True,
+            "n14_effectiveness_confirmed": False,
+            "merger_closing_verified": False,
+            "share_class_approved": False, "production_eligible": False}
 
 def build_review_ledger(review: list[dict]) -> list[dict]:
     """Preserve A5 decisions; signal new investigation without auto promotion."""
