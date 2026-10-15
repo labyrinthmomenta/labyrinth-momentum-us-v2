@@ -84,3 +84,5 @@ jobs:
           path: runtime/a5k-sec/
           if-no-files-found: warn
           retention-days: 90
+
+# Recompute SEC official pilot 12(b) same-row ticker/class/exchange evidence.
