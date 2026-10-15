@@ -26,7 +26,7 @@ from .sec_capture import validate_user_agent
 
 A5D_REPORT_SHA256 = "b1a5b4ecdca3572ecd84baef85b5e9ec3ae47c422ec39ad6491c7cf89a2d11da"
 ELECTION_ISSUERS = 16
-MAX_FINANCIAL_BYTES = 20 * 1024 * 1024
+MAX_FINANCIAL_BYTES = 64 * 1024 * 1024  # Some genuine inline-XBRL 10-Qs exceed 20 MiB
 INTER_REQUEST_SECONDS = 0.75
 FINANCIAL_FORMS = ("10-Q", "10-K")
 EVENT_FORMS = ("8-K", "8-K/A")
