@@ -50,7 +50,7 @@ Saklama süresi 90 gün; **kalıcı arşiv değildir**.
 | LIEN | `0001843162` | 2021-06-29 | [0000950103-21-009571](https://www.sec.gov/Archives/edgar/data/1843162/000095010321009571/dp153455_n54a.htm) | Başvuru içeriği doğrulandı; mevcut BDC statüsü açık |
 
 **CCAP ek kayıt:** 2020-01-30 tarihli
-[N-54A/A, accession 0001193125-20-019656](https://www.sec.gov/Archives/edgar/data/1633336/000119312520019656/d850124dn54aa.htm)
+[N-54A/A, accession 0001193125-20-019656](https://www.sec.gov/Archives/edgar/data/1633336/000119312520019656/d874298dn54aa.htm)
 içeriği ayrıca doğrulandı. Bu nedenle belge sayısı 17; 17 farklı issuer
 değil, **16 issuer** var. CCAP'in ilk N-54A tarihi 2015-06-05.
 
