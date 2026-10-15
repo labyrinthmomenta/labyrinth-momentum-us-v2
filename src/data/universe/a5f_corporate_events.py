@@ -35,7 +35,7 @@ WATCH_PATTERNS = {
     "LISTING_OR_DELISTING_LANGUAGE": r"\b(?:delist(?:ed|ing)?|notice of noncompliance|trading suspension|transfer of listing|exchange listing)\b",
     "TICKER_OR_SHARE_CLASS_LANGUAGE": r"\b(?:ticker symbol|trading symbol|share class|class of common|reclassification|stock split|reverse split)\b",
     "CHARTER_OR_GOVERNANCE_LANGUAGE": r"\b(?:articles of incorporation|certificate of incorporation|bylaws|by-laws|charter amendment)\b",
-    "BDC_ELECTION_OR_WITHDRAWAL_LANGUAGE": r"\b(?:n-54c|withdrawal of (?:its |the )?election|cease(?:d)? to be (?:regulated|treated) as a business development company)\b",
+    "BDC_ELECTION_OR_WITHDRAWAL_LANGUAGE": r"\b(?:n-54c|withdraw(?:al|ing|n)?\s+(?:of\s+)?(?:its\s+|the\s+)?election|cease(?:d)? to be (?:regulated|treated) as a business development company)\b",
 }
 ITEM_LABELS = {
     "1.01": "MATERIAL_AGREEMENT_REVIEW",
