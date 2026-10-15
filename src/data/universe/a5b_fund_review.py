@@ -7,10 +7,13 @@ from __future__ import annotations
 import argparse
 from collections import Counter, defaultdict
 from pathlib import Path
+import hashlib
 import json
 
 from .a5_review import A4_HASHES
 from .fund_registry import load_funds
+
+FROZEN_A5_QUEUE_SHA256 = "ea4a8e3112e3e30d9c3e67fc33fac86a3a6aa3fcf2f58391ecc50896ba3bdb37"
 
 REASONS = {
     "FINANCIAL_STATUS_REVIEW": 268,
@@ -112,7 +115,10 @@ def main() -> int:
     p.add_argument("--output", type=Path, required=True)
     args = p.parse_args()
     try:
-        rows = json.loads(args.a5_instrument_review.read_text(encoding="utf-8"))
+        raw = args.a5_instrument_review.read_bytes()
+        if hashlib.sha256(raw).hexdigest() != FROZEN_A5_QUEUE_SHA256:
+            raise ValueError("A5 frozen instrument-review.json SHA256 mismatch")
+        rows = json.loads(raw.decode("utf-8"))
         fund = load_funds(args.sec_fund_capture)
         output = enrich_fund_queue(rows, fund)
         args.output.mkdir(parents=True, exist_ok=False)
