@@ -57,3 +57,5 @@ jobs:
           retention-days: 90
 
 # Re-run after verifying SEC fund registry includes one valid class with blank ticker.
+
+# Final verify pinned SHA256 of the entire A5 1,010-record review artifact.
