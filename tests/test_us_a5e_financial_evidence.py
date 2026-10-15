@@ -22,6 +22,8 @@ business development company under the Investment Company Act of 1940.</p>
 <p>Regulations and risk factors are described throughout this document
 and should be reviewed against our current securities reports.</p>
 </body></html>"""
+# Real SEC filings are long; extend the synthetic fixture past anti-error size floor.
+HTML += b"<p>Additional ordinary reporting content.</p>" * 12
 
 
 def original_sec_json():
