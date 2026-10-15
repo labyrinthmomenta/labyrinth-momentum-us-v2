@@ -17,6 +17,7 @@ import time
 from urllib.request import Request,build_opener
 
 from .a5f_corporate_events import _plain_text
+from .a5e_financial_evidence import inspect_financial
 from .a5g_exhibit_merger_evidence import validate_archive_url
 from .a5h_remaining_exhibits import parse_submissions_timeline
 from .sec_capture import NoRedirect,validate_user_agent
@@ -219,6 +220,27 @@ def run_pilot(a5j:Path,out:Path,*,agent:str,fetcher=fetch_sec,
                 calls+=1
                 raw=fetcher(chosen["document_url"],agent,limit=MAX_PRIMARY)
                 snapshot=inspect_primary(raw,category=category,ticker=ticker)
+                # For 10-Q or 10-K, seek exact ticker + Common Stock +
+                # exchange within the SAME source table row, as in A5e.
+                # Absence is never proof of a non-common security (SPAC
+                # ordinary shares can have different title wording).
+                cover_row={"status":"NOT_A_10Q_10K","row_present":False,
+                           "row_candidates":[],"security_id_approved":False}
+                if chosen["form"] in ("10-K","10-Q"):
+                    try:
+                        detail=inspect_financial(raw,expected_tickers=[ticker])
+                        if detail["source_sha256"]!=snapshot["source_sha256"]:
+                            raise OfficialTypeError("SEC financial source digest changed")
+                        row=detail["listed_security_row_candidates"][0]
+                        cover_row={"status":"ROW_CANDIDATE_REVIEW_ONLY",
+                                   "row_present":row["row_evidence_present"],
+                                   "row_candidates":row["section_12b_row_candidates"],
+                                   "security_id_approved":False}
+                    except ValueError:
+                        cover_row={"status":"FINANCIAL_ROW_UNRESOLVED_REVIEW_ONLY",
+                                   "row_present":False,"row_candidates":[],
+                                   "security_id_approved":False}
+                snapshot["section12b_same_row_common_stock_candidate"]=cover_row
                 name=(f"{ticker}-{chosen['accession']}-"
                       f"{snapshot['source_sha256']}.source")
                 (out/name).write_bytes(raw)
