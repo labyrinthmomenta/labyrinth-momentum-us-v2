@@ -84,7 +84,7 @@ def inspect_document(raw: bytes) -> dict:
     plain = re.sub(r"\s+", " ", plain).casefold()
     detected = {
         "form_n54a_heading": bool(re.search(r"\bform\s*n[\s-]*54a\b", plain)),
-        "election_notice": "election" in plain and ("section 54" in plain or "section 55" in plain),
+        "election_notice": bool("election" in plain and re.search(r"\bsections?\s+5[45]\b", plain)),
         "business_development_company_phrase": "business development company" in plain,
         "investment_company_act": "investment company act" in plain,
         "withdrawal_phrase": "withdraw" in plain and "election" in plain,
