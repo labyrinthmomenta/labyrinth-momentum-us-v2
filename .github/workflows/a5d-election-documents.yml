@@ -1,0 +1,55 @@
+name: One-time A5d SEC N-54A document evidence
+on:
+  push:
+    branches:
+      - feature/a5d-bdc-election-documents
+    paths:
+      - .github/workflows/a5d-election-documents.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  election-documents:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install offline dependencies
+        run: python -m pip install -r requirements-dev.txt
+      - name: Run complete regression suite
+        run: python -m pytest -q
+      - name: Recover pinned A5c SEC submissions source artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: a5c-edgar-complete-evidence-sweep
+          run-id: 38703798184
+          repository: labyrinthmomenta/labyrinth-momentum-us-v2
+          github-token: ${{ github.token }}
+          path: runtime/a5c
+      - name: SEC fair-access identifying agent
+        shell: bash
+        run: |
+          email="$(git log -1 --format=%ae)"
+          if [[ "$email" != *"@"* ]]; then
+            echo 'SEC research contact unavailable'; exit 2
+          fi
+          echo "SEC_USER_AGENT=LabyrinthMomentumUSV2 N54A-DocumentReview $email" >> "$GITHUB_ENV"
+      - name: Verify 16 original SEC N-54A primary documents against frozen metadata
+        run: |
+          python -m src.data.universe.a5d_election_documents \
+            --a5c-artifact runtime/a5c \
+            --output runtime/a5d
+      - name: Preserve all primary documents and evidence audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a5d-n54a-primary-document-evidence
+          path: runtime/a5d/
+          if-no-files-found: warn
+          retention-days: 90
+
+# A5d document run: detect plural 'sections 55' in official election form text.
