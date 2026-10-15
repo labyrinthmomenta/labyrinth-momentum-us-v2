@@ -1,0 +1,54 @@
+name: One-time A5c SEC EDGAR submissions pilot
+on:
+  push:
+    branches:
+      - feature/a5c-edgar-submissions-evidence
+    paths:
+      - .github/workflows/a5c-edgar-submissions-pilot.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  a5c-edgar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install offline test dependencies
+        run: python -m pip install -r requirements-dev.txt
+      - name: Run full regression suite
+        run: python -m pytest -q
+      - name: Recover frozen A5 instrument review
+        uses: actions/download-artifact@v4
+        with:
+          name: a5-venue-and-instrument-evidence
+          run-id: 38633103264
+          repository: labyrinthmomenta/labyrinth-momentum-us-v2
+          github-token: ${{ github.token }}
+          path: runtime/a5
+      - name: Identify official SEC research contact
+        shell: bash
+        run: |
+          email="$(git log -1 --format=%ae)"
+          if [[ "$email" != *"@"* ]]; then
+            echo 'Cannot supply identifying SEC User-Agent'; exit 2
+          fi
+          echo "SEC_USER_AGENT=LabyrinthMomentumUSV2 EDGAR-Research $email" >> "$GITHUB_ENV"
+      - name: Capture bounded 20-issuer EDGAR filing metadata pilot
+        run: |
+          python -m src.data.universe.a5c_edgar_pilot \
+            --a5-instrument-review runtime/a5/instrument-review.json \
+            --output runtime/a5c \
+            --limit 20
+      - name: Preserve source receipts, downloaded JSONs and review-only evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a5c-edgar-submissions-pilot
+          path: runtime/a5c/
+          if-no-files-found: warn
+          retention-days: 90
