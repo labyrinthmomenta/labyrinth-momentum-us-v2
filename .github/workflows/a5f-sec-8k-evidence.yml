@@ -53,3 +53,5 @@ jobs:
           retention-days: 90
 
 # A5f final live run after 172 green regression tests and event-language guards.
+
+# Rerun after explicitly excluding 8-K cover-page Trading Symbol(s) boilerplate.
