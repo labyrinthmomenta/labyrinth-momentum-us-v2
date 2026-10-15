@@ -280,7 +280,7 @@ def crosswalk(a4_root: Path, a5l_root: Path) -> dict:
                 "directory_class_wording": kind,
                 "nasdaq_financial_status_code": row["evidence"]["Financial Status"],
                 "source_name_root_equal": True,
-                "same_security_id_as_parent": False,
+                "same_security_id_as_parent_proven": False,
                 "independent_security_id_established": False,
                 "original_A4_decision": "EXCLUDE",
                 "original_A4_reason": "NON_COMMON_INSTRUMENT_NAME",
