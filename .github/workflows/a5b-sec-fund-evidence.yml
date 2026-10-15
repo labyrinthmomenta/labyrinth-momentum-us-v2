@@ -55,3 +55,5 @@ jobs:
           path: runtime/a5b/
           if-no-files-found: warn
           retention-days: 90
+
+# Re-run after verifying SEC fund registry includes one valid class with blank ticker.
