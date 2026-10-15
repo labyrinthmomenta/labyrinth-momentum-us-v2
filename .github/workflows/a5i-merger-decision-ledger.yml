@@ -68,3 +68,5 @@ jobs:
           path: runtime/a5i/
           if-no-files-found: warn
           retention-days: 90
+
+# Diagnose unexpected SEC EFFECT XML by preserving quarantine source SHA bytes.
