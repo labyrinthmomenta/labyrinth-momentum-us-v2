@@ -23,7 +23,7 @@ jobs:
       - name: Restore SEC A5e original 16 BDC primary filings
         uses: actions/download-artifact@v4
         with:
-          name: a5e-sec-financial-evidence
+          name: a5e-sec-10q-bdc-and-share-class-evidence
           run-id: 38728679096
           repository: labyrinthmomenta/labyrinth-momentum-us-v2
           github-token: ${{ github.token }}
