@@ -1,0 +1,58 @@
+name: A5u 40 SEC 8K + 17 election official review
+on:
+  push:
+    branches: [feature/a5u-40-sec-events-bdc-status-review]
+    paths: [.github/workflows/a5u-official-40-8k-review.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  sec-issuer-events:
+    runs-on: ubuntu-latest
+    timeout-minutes: 28
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install offline test dependencies
+        run: python -m pip install -r requirements-dev.txt
+      - name: Run all repository regressions and SEC safeguards
+        run: python -m pytest -q
+      - name: Retrieve frozen 16 BDC SEC financial document metadata
+        uses: actions/download-artifact@v4
+        with:
+          name: a5e-sec-10q-bdc-and-share-class-evidence
+          run-id: 38728679096
+          repository: labyrinthmomenta/labyrinth-momentum-us-v2
+          github-token: ${{ github.token }}
+          path: runtime/a5e
+      - name: Retrieve SHA-locked 17 original N-54A SEC documents
+        uses: actions/download-artifact@v4
+        with:
+          name: a5d-n54a-primary-document-evidence
+          run-id: 38706374436
+          repository: labyrinthmomenta/labyrinth-momentum-us-v2
+          github-token: ${{ github.token }}
+          path: runtime/a5d
+      - name: Set identifying fair-access contact
+        shell: bash
+        run: |
+          email="$(git log -1 --format=%ae)"
+          [[ "$email" == *"@"* ]] || exit 2
+          echo "SEC_USER_AGENT=LabyrinthMomentumUSV2 A5u-OriginalEventAudit $email" >> "$GITHUB_ENV"
+      - name: Capture and inspect 40 original post-financial SEC Form 8-K filings
+        run: |
+          python -m src.data.universe.a5u_bdc_event_review \
+            --a5e runtime/a5e \
+            --a5d runtime/a5d \
+            --output runtime/a5u
+      - name: Preserve independent SEC issuer event findings and sha-pinned sources
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a5u-40-SEC-8K-and-17-N54A-evidence
+          path: runtime/a5u/
+          if-no-files-found: warn
+          retention-days: 90
