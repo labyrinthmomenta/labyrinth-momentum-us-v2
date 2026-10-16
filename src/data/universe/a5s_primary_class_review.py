@@ -88,7 +88,7 @@ def parse_ncen(raw:bytes,*,ticker:str)->dict:
 
 def parse_tvc(raw:bytes)->dict:
     text=_plain_text(raw)
-    if "FORM 10-K" not in text[:15000].upper():
+    if "FORM 10-K" not in text[:100000].upper():
         raise PrimaryReviewError("TVC original not SEC Form 10-K")
     bond=bool(BOND.search(text))
     parrs=bool(PARRS.search(text))
