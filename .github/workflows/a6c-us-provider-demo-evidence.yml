@@ -1,0 +1,72 @@
+name: A6c US provider docs + public EODHD demo schema evaluation
+on:
+  push:
+    branches: [feature/a6c-us-provider-contract-and-demo-evaluation]
+    paths: [.github/workflows/a6c-us-provider-demo-evidence.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  vendor-evaluation-not-a-price-ingestion:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      US_V2_PRODUCTION: '0'
+      US_V2_ENVIRONMENT: staging
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Validate the entire source/evidence and provider-safety test suite
+        run: |
+          python -m pip install -r requirements-dev.txt
+          python -m pytest -q
+      - name: Replay A6b original synthetic-only DENY source manifest
+        uses: actions/download-artifact@v4
+        with:
+          name: a6b-us-synthetic-90session-liquidity-252return-smoke
+          run-id: 38956866891
+          repository: labyrinthmomenta/labyrinth-momentum-us-v2
+          github-token: ${{ github.token }}
+          path: runtime/a6b
+      - name: Assert prior US production and actual data remain unapproved
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          obj=json.loads(Path('runtime/a6b/a6b-synthetic-us-price-indicators.json').read_text())
+          assert obj['US_publication_permission']=='DENY'
+          assert obj['real_US_price_data_rows']==0
+          assert obj['production_eligible'] is False
+          assert obj['trading_calendar_independently_verified'] is False
+          PY
+      - name: Probe at most two explicitly public EODHD demo symbols, save only hashes/schema
+        run: |
+          python -m src.data.us_eodhd_demo_probe \
+            --output runtime/us_v2_staging/a6c
+      - name: Require release denial regardless of public demo availability
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          obj=json.loads(Path('runtime/us_v2_staging/a6c/a6c-public-demo-vendor-probe.json').read_text())
+          assert obj['original_public_demo_requests_attempted']==2
+          assert 0<=obj['original_demo_responses_schema_checked']<=2
+          assert obj['real_market_data_ingested_into_US_system']==0
+          assert obj['price_volume_basis_for_liquidity']=='BLOCKED_RAW_PRICE_VS_SPLIT_ADJUSTED_VOLUME'
+          assert obj['vendor_licensed_or_approved'] is False
+          assert obj['downloaded_vendor_rows_saved_or_redistributed'] is False
+          assert obj['publication_permission']=='DENY'
+          PY
+      - name: Archive evidence receipt only; never raw price history or keys
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a6c-us-provider-evaluation-public-demo-receipts
+          path: runtime/us_v2_staging/a6c/
+          if-no-files-found: warn
+          retention-days: 90
