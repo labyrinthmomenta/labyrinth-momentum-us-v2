@@ -42,6 +42,12 @@ TradingView örneği `JPM/PM`, Nasdaq otherlisted karşılığı `JPM$M` — bu,
 
 **NASDAQ:** BMMX, AMRO, IAM. **NYSE seri belirsiz preferred:** DCOM/P, TFIN/P, ETI/P, TY/P. Eksiklik veya yeni listing kararı verilmedi; iki snapshot arasında iki gün var. Seri harfi olmayan /P kodları kendiliğinden dönüştürülmez.
 
+## Resmî kaynakta mevcut ama TradingView NASDAQ/NYSE export'unda olmayan altı provisional INCLUDE
+
+**XNAS:** EFTY, HCHL, MCTA, OST, SVA. **XNYS:** TAP.A.
+
+Bunlar toplam 2.476 A4-only kayıttaki **XNAS/XNYS provisional INCLUDE altı** örnektir. Resmî listede bulunmaları TradingView eksikliği, delisting, veri hatası veya canlı işlem uygunluğu kanıtı değildir. Tarih ve iki kaynağın farklı kapsama/filtre kuralları ayrıca araştırılmalıdır.
+
 ## Kritik 21 tür uyarısı
 
 Geçici A4 INCLUDE içinde TradingView CFI farklı sınıfa işaret eden **21 kayıt**: **20 CI (kolektif yatırım aracı işareti)** — BSTZ, GAB, GAM, TYG, BCX, BOE, GUT, ETO, VKQ, GGT, ETX, MPV, GRX, JHS, GGZ, JHI, ECAT, MCI, BTX, BMEZ — ve **1 EP (preferred equity işareti)** TVC.
