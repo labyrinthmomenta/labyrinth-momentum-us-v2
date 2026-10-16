@@ -1,0 +1,55 @@
+name: A5q full universe evidence and conflict queue
+on:
+  push:
+    branches: [feature/a5q-full-universe-evidence-queue]
+    paths: [.github/workflows/a5q-evidence-queue.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r requirements-dev.txt
+      - run: python -m pytest -q
+      - uses: actions/download-artifact@v4
+        with:
+          name: a5k-official-full-universe-deny
+          run-id: 38763550078
+          repository: labyrinthmomenta/labyrinth-momentum-us-v2
+          github-token: ${{ github.token }}
+          path: runtime/a5k
+      - uses: actions/download-artifact@v4
+        with:
+          name: a5o-sec-21-issuer-cfi-audit
+          run-id: 38894442577
+          repository: labyrinthmomenta/labyrinth-momentum-us-v2
+          github-token: ${{ github.token }}
+          path: runtime/a5o
+      - uses: actions/download-artifact@v4
+        with:
+          name: a5p-symbol-and-xase-exceptions
+          run-id: 38894892527
+          repository: labyrinthmomenta/labyrinth-momentum-us-v2
+          github-token: ${{ github.token }}
+          path: runtime/a5p
+      - name: Reconcile 13,287 pinned source rows and proposed priority holds
+        run: |
+          python -m src.data.universe.a5q_full_evidence_queue \
+            --a5k runtime/a5k/a5k-full-universe-deny.json \
+            --a5o runtime/a5o/a5o-official-issuer-forms.json \
+            --a5p runtime/a5p/a5p-dated-symbol-coverage.json \
+            --output runtime/a5q
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: a5q-full-universe-priority-evidence-queue
+          path: runtime/a5q/
+          if-no-files-found: warn
+          retention-days: 90
