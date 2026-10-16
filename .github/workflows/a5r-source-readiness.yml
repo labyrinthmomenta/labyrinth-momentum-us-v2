@@ -1,0 +1,39 @@
+name: A5r final source-pinned readiness deny-only
+on:
+  push:
+    branches: [feature/a5r-independent-release-readiness-deny]
+    paths: [.github/workflows/a5r-source-readiness.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r requirements-dev.txt
+      - run: python -m pytest -q
+      - uses: actions/download-artifact@v4
+        with:
+          name: a5q-full-universe-priority-evidence-queue
+          run-id: 38895320574
+          repository: labyrinthmomenta/labyrinth-momentum-us-v2
+          github-token: ${{ github.token }}
+          path: runtime/a5q
+      - name: Evaluate all 13,287 frozen decisions, deny all 5,566 unresolved candidates
+        run: |
+          python -m src.data.universe.a5r_release_readiness \
+            --a5q runtime/a5q/a5q-evidence-decision-queue.json \
+            --output runtime/a5r
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: a5r-preproduction-release-readiness-DENY
+          path: runtime/a5r/
+          if-no-files-found: warn
+          retention-days: 90
