@@ -60,5 +60,5 @@ def test_bounded_source_access_no_private_url():
 def test_original_source_report_mutation_fails_closed(tmp_path):
     p=tmp_path/"a5o-official-issuer-forms.json"
     p.write_text("{}")
-    with pytest.raises(m.CaptureError,match="hash"):
+    with pytest.raises(m.CaptureError,match="SHA"):
         m.capture(tmp_path,tmp_path/"out",agent="Labyrinth Audit reviewer reviewer@example.com")
