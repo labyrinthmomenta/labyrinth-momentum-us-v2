@@ -45,3 +45,5 @@ jobs:
           path: runtime/a5s/
           if-no-files-found: warn
           retention-days: 90
+
+# Capture is only attempted after passing all A5s policy and source-provenance regression tests.
