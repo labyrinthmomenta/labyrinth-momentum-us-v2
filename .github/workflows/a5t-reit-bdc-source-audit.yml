@@ -1,0 +1,52 @@
+name: A5t official REIT BDC issuer security class crosswalk
+on:
+  push:
+    branches: [feature/a5t-reit-bdc-official-identity-review]
+    paths: [.github/workflows/a5t-reit-bdc-source-audit.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  independent-US-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Validate entire offline repository regression suite
+        run: |
+          python -m pip install -r requirements-dev.txt
+          python -m pytest -q
+      - name: Restore SEC A5e original 16 BDC primary filings
+        uses: actions/download-artifact@v4
+        with:
+          name: a5e-sec-financial-evidence
+          run-id: 38728679096
+          repository: labyrinthmomenta/labyrinth-momentum-us-v2
+          github-token: ${{ github.token }}
+          path: runtime/a5e
+      - name: Restore SEC A5k original 9 source pilot
+        uses: actions/download-artifact@v4
+        with:
+          name: a5k-9-issuer-sec-type-pilot
+          run-id: 38763550078
+          repository: labyrinthmomenta/labyrinth-momentum-us-v2
+          github-token: ${{ github.token }}
+          path: runtime/a5k
+      - name: Validate 16 BDC and 3 REIT exact original SEC source receipt bytes
+        run: |
+          python -m src.data.universe.a5t_reit_bdc_identity_review \
+            --a5e runtime/a5e \
+            --a5k runtime/a5k \
+            --output runtime/a5t
+      - name: Preserve OFFLINE review-only 19-issuer evidence queue
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a5t-us-reit-bdc-19-sec-review
+          path: runtime/a5t/
+          if-no-files-found: warn
+          retention-days: 90
