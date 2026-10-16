@@ -1,0 +1,47 @@
+name: A5s official SEC primary form evidence capture
+on:
+  push:
+    branches: [feature/a5s-sec-primary-fund-type-evidence]
+    paths: [.github/workflows/a5s-sec-primary-capture.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 23
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Validate frozen capture and user-approved policy
+        run: python -m pytest -q
+      - uses: actions/download-artifact@v4
+        with:
+          name: a5o-sec-21-issuer-cfi-audit
+          run-id: 38894442577
+          repository: labyrinthmomenta/labyrinth-momentum-us-v2
+          github-token: ${{ github.token }}
+          path: runtime/a5o
+      - name: Supply identifying SEC fair access contact
+        shell: bash
+        run: |
+          email="$(git log -1 --format=%ae)"
+          [[ "$email" == *"@"* ]] || exit 2
+          echo "SEC_USER_AGENT=LabyrinthMomentumUSV2 A5s OriginalFilingAudit $email" >> "$GITHUB_ENV"
+      - name: Capture 20 exact N-CEN and one TVC 10-K SEC originals
+        run: |
+          python -m src.data.universe.a5s_sec_primary_capture \
+            --a5o runtime/a5o \
+            --output runtime/a5s
+      - name: Preserve SHA256 originals and disclosure-only receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a5s-official-21-SEC-primary-evidence
+          path: runtime/a5s/
+          if-no-files-found: warn
+          retention-days: 90
