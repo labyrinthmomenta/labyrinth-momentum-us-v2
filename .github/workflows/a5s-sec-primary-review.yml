@@ -38,3 +38,5 @@ jobs:
           path: runtime/class-review/
           if-no-files-found: warn
           retention-days: 90
+
+# Rerun pinned 21 SEC source evaluation after 10-K inline XBRL front-matter fix.
