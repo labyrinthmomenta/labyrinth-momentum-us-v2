@@ -66,6 +66,8 @@ def fake_event(url,agent):
             b"<p>Item 1.01 Entry Into a Material Definitive Agreement</p>"
             b"<p>Reported potential merger subject to voting and additional approval.</p>"
             b"<p>Item 9.01 Financial Statements and Exhibits</p>"
+            b"<p>This filing contains additional issuer reporting disclosure "
+            b"and forward-looking statement context for testing only.</p>"
             b"</html>")
 
 
