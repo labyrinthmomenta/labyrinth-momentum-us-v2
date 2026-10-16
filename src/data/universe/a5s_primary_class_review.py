@@ -22,7 +22,7 @@ FORM_N2=re.compile(r"Form N-2 Filer\s*\(Closed-End Investment Company\)",re.I)
 SHARE_CLASS=re.compile(r"Type of security\s+(.*?)\s+Title of class",re.I|re.S)
 EXCHANGE=re.compile(r"Exchange where listed\s+(.*?)\s+Ticker symbol\s+(\S+)",re.I|re.S)
 NYSE=re.compile(r"^NEW YORK STOCK EXCHANGE(?:, INC\.?)?$",re.I)
-PARRS=re.compile(r"TVA.s Putable Automatic Rate Reset Securities\s*\(?[\"']?PARRS[\"']?\)?\s+are traded on the NYSE under the exchange symbols\s*[\"']TVC[\"']\s+and\s+[\"']TVE[\"']",re.I)
+PARRS=re.compile(r"Putable Automatic Rate Reset Securities.{0,70}PARRS.{0,120}exchange symbols.{0,35}\bTVC\b.{0,35}\bTVE\b",re.I|re.S)
 BOND=re.compile(r"TVA Bonds are traded in the public bond markets",re.I)
 
 
