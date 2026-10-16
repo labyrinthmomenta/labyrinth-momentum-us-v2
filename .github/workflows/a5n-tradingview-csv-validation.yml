@@ -1,0 +1,49 @@
+name: A5n independent TradingView crosswalk offline validation
+on:
+  push:
+    branches:
+      - feature/a5n-tradingview-csv-independent-crosscheck
+    paths:
+      - .github/workflows/a5n-tradingview-csv-validation.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline-validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pinned test requirements
+        run: python -m pip install -r requirements-dev.txt
+      - name: Validate entire existing codebase and A5n synthetic cases
+        run: python -m pytest -q
+      - name: Declare source privacy and separate provenance
+        shell: bash
+        run: |
+          mkdir -p runtime/a5n
+          python - <<'PY'
+          import json, pathlib
+          status = {
+            'status':'OFFLINE_TESTS_ONLY_NO_PRIVATE_TRADINGVIEW_CSV_IN_CI',
+            'tradingview_csv_committed':False,
+            'tradingview_csv_processed_by_public_ci':False,
+            'tradingview_expected_sha256':'df1a21bb55222b6fe480db22aa0ea22e50ad1995562597fef476a18fe2ba17fc',
+            'a4_expected_sha256':'5c7e7080ef6a19dc17d771b830a6d5667b31ea0d8a209d0471c3f5c9f3df9c2d',
+            'real_14174_row_report_run':'local_user_csv_only; see A5n report and user audit bundle',
+            'production_approvals':0,
+            'release_gate_connected_to_production':False,
+          }
+          pathlib.Path('runtime/a5n/ci-scope.json').write_text(json.dumps(status, indent=2)+'\n')
+          PY
+      - name: Preserve limitations and synthetic test manifest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a5n-crosswalk-offline-CI-scope
+          path: runtime/a5n/
+          if-no-files-found: warn
+          retention-days: 90
