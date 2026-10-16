@@ -1,0 +1,56 @@
+name: A6a US V2 isolated STAGING preflight no publisher
+on:
+  push:
+    branches: [feature/a6a-us-only-staging-preflight]
+    paths: [.github/workflows/a6a-us-only-staging-preflight.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  us-v2-isolated-source-preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      US_V2_ENVIRONMENT: staging
+      US_V2_DATA_ROOT: data/us_v2
+      US_V2_PRODUCTION: '0'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Validate immutable evidence and US-only environment safeguards
+        run: |
+          python -m pip install -r requirements-dev.txt
+          python -m pytest -q
+      - name: Restore immutable A5r DENY-only release readiness result
+        uses: actions/download-artifact@v4
+        with:
+          name: a5r-preproduction-release-readiness-DENY
+          run-id: 38895762633
+          repository: labyrinthmomenta/labyrinth-momentum-us-v2
+          github-token: ${{ github.token }}
+          path: runtime/a5r
+      - name: Restore 40 original SEC 8K source/review receipts
+        uses: actions/download-artifact@v4
+        with:
+          name: a5u-40-SEC-8K-and-17-N54A-evidence
+          run-id: 38954495872
+          repository: labyrinthmomenta/labyrinth-momentum-us-v2
+          github-token: ${{ github.token }}
+          path: runtime/a5u
+      - name: Verify source receipts, maintain publication=DENY and production isolation
+        run: |
+          python -m src.data.universe.a6a_us_staging_preflight \
+            --a5r runtime/a5r/a5r-release-readiness-deny.json \
+            --a5u runtime/a5u/a5u-sec-40-event-review.json \
+            --output runtime/us_v2_staging/a6a
+      - name: Save US-only staging readiness contract, NO production artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a6a-us-v2-isolated-staging-DENY-report
+          path: runtime/us_v2_staging/a6a/
+          if-no-files-found: warn
+          retention-days: 90
