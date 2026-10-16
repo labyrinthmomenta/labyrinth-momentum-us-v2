@@ -132,7 +132,8 @@ def validate_bars(
         if (b.currency != USD or b.price_basis not in ALLOWED_BASES
             or b.volume_basis != b.price_basis):
             raise USMarketDataError("Unapproved currency or inconsistent price-volume adjustment basis")
-        if b.final is not True or not _aware(b.received_at) or not b.source_id.strip():
+        if (b.final is not True or not _aware(b.received_at)
+            or type(b.source_id) is not str or not b.source_id.strip()):
             raise USMarketDataError("Unfinalized bar, missing provider ID or received_at")
         if (b.received_at < s.closes_at or b.received_at > evaluated_at):
             raise USMarketDataError("Bar received before session close or after evaluation")
