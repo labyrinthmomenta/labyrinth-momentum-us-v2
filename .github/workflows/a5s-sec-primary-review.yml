@@ -1,0 +1,42 @@
+name: A5s original SEC N-CEN D1 and TVC issuer bond review
+on:
+  push:
+    branches: [feature/a5s-sec-primary-fund-type-evidence]
+    paths: [.github/workflows/a5s-sec-primary-review.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  original-class-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Validate all source and policy regressions
+        run: python -m pytest -q
+      - uses: actions/download-artifact@v4
+        with:
+          name: a5s-official-21-SEC-primary-evidence
+          run-id: 38917414012
+          repository: labyrinthmomenta/labyrinth-momentum-us-v2
+          github-token: ${{ github.token }}
+          path: runtime/primary
+      - name: SHA-verify 21 original SEC source documents and inspect exact N-CEN D1 ticker rows
+        run: |
+          python -m src.data.universe.a5s_primary_class_review \
+            --sec-originals runtime/primary \
+            --output runtime/class-review
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: a5s-SEC-21-primary-classification-proposals
+          path: runtime/class-review/
+          if-no-files-found: warn
+          retention-days: 90
+
+# Rerun pinned 21 SEC source evaluation after 10-K inline XBRL front-matter fix.
