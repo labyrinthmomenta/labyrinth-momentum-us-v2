@@ -1,0 +1,74 @@
+name: A6b US synthetic completed-session OHLCV smoke
+on:
+  push:
+    branches: [feature/a6b-us-ohlcv-calendar-tradability-smoke]
+    paths: [.github/workflows/a6b-synthetic-us-ohlcv-smoke.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  us-only-ohlcv-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      US_V2_PRODUCTION: '0'
+      US_V2_ENVIRONMENT: staging
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run all US V2 regressions including 90-session arithmetic and DST
+        run: |
+          python -m pip install -r requirements-dev.txt
+          python -m pytest -q
+      - name: Restore pinned US-only A6a staging readiness denial
+        uses: actions/download-artifact@v4
+        with:
+          name: a6a-us-v2-isolated-staging-DENY-report
+          run-id: 38955193175
+          repository: labyrinthmomenta/labyrinth-momentum-us-v2
+          github-token: ${{ github.token }}
+          path: runtime/previous
+      - name: Confirm pre-existing US publication DENY; no live source approvals
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('runtime/previous/a6a-us-only-preflight.json')
+          r=json.loads(p.read_text())
+          assert r['status']=='US_V2_STAGING_PREFLIGHT_DENIED_NO_PRODUCTION'
+          assert r['owned_repository']=='labyrinthmomenta/labyrinth-momentum-us-v2'
+          assert r['candidate_DENY']==5566
+          assert r['candidate_ALLOW']==0
+          assert r['publication_permission']=='DENY'
+          assert r['production_database_created'] is False
+          PY
+      - name: Run US-only DETERMINISTIC SYNTHETIC 253-session engine and 90-session dollar-liquidity smoke
+        run: |
+          python -m src.data.us_synthetic_smoke \
+            --output runtime/us_v2_staging/a6b
+      - name: Assert synthetic data cannot become a published market universe
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('runtime/us_v2_staging/a6b/a6b-synthetic-us-price-indicators.json').read_text())
+          assert r['status']=='SYNTHETIC_US_STAGING_RULES_SMOKE_SUCCESS_NO_REAL_DATA'
+          assert r['real_US_price_data_rows']==0
+          assert r['trading_calendar_independently_verified'] is False
+          assert r['US_publication_permission']=='DENY'
+          assert r['indicator_compatibility']['returns_observed']==252
+          assert r['liquidity_mechanics']['completed_calendar_sessions_evaluated']==90
+          PY
+      - name: Save ephemeral US-only synthetic staging evidence; no real bar files
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a6b-us-synthetic-90session-liquidity-252return-smoke
+          path: runtime/us_v2_staging/a6b/
+          if-no-files-found: warn
+          retention-days: 90
