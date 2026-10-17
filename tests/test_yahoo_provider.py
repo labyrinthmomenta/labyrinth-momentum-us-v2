@@ -96,3 +96,86 @@ def test_rejects_multi_symbol_columns():
 
     with pytest.raises(DataQualityError):
         to_price_bars(frame)
+
+
+def test_fetch_price_bars_with_mock_downloader():
+    from src.data.providers.yahoo import fetch_price_bars
+
+    calls = []
+
+    def fake_download(symbol, **kwargs):
+        calls.append((symbol, kwargs))
+        return sample_frame()
+
+    bars = fetch_price_bars(
+        "aapl",
+        start=date(2026, 10, 13),
+        end=date(2026, 10, 15),
+        downloader=fake_download,
+    )
+
+    assert len(bars) == 2
+    assert bars[-1].close == 104.0
+    assert calls[0][0] == "AAPL"
+    assert calls[0][1]["auto_adjust"] is False
+    assert calls[0][1]["interval"] == "1d"
+
+
+def test_fetch_handles_yfinance_multiindex():
+    from src.data.providers.yahoo import fetch_price_bars
+
+    def fake_download(symbol, **kwargs):
+        frame = sample_frame()
+        frame.columns = pd.MultiIndex.from_product(
+            [frame.columns, ["AAPL"]],
+            names=["Price", "Ticker"],
+        )
+        return frame
+
+    bars = fetch_price_bars(
+        "AAPL",
+        start=date(2026, 10, 13),
+        end=date(2026, 10, 15),
+        downloader=fake_download,
+    )
+
+    assert len(bars) == 2
+
+
+def test_fetch_rejects_empty_download():
+    from src.data.providers.yahoo import fetch_price_bars
+
+    with pytest.raises(DataQualityError):
+        fetch_price_bars(
+            "AAPL",
+            start=date(2026, 10, 13),
+            end=date(2026, 10, 15),
+            downloader=lambda *args, **kwargs: pd.DataFrame(),
+        )
+
+
+def test_fetch_handles_download_error():
+    from src.data.providers.yahoo import fetch_price_bars
+
+    def failing_download(*args, **kwargs):
+        raise ConnectionError("Network unavailable")
+
+    with pytest.raises(DataQualityError, match="download failed"):
+        fetch_price_bars(
+            "AAPL",
+            start=date(2026, 10, 13),
+            end=date(2026, 10, 15),
+            downloader=failing_download,
+        )
+
+
+def test_fetch_rejects_invalid_dates():
+    from src.data.providers.yahoo import fetch_price_bars
+
+    with pytest.raises(ValueError):
+        fetch_price_bars(
+            "AAPL",
+            start=date(2026, 10, 15),
+            end=date(2026, 10, 13),
+            downloader=lambda *args, **kwargs: sample_frame(),
+        )
