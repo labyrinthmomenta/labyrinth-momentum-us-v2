@@ -192,6 +192,30 @@ def replace_history(
         ))
 
     with sqlite3.connect(db_path) as conn:
+        conn.execute("BEGIN IMMEDIATE")
+
+        existing = {
+            row[0]
+            for row in conn.execute(
+                """
+                SELECT session_date
+                FROM daily_bars
+                WHERE symbol = ?
+                """,
+                (symbol,),
+            )
+        }
+
+        incoming = {record[1] for record in records}
+        lost_dates = existing - incoming
+
+        if lost_dates:
+            raise DataQualityError(
+                f"History replacement would remove "
+                f"{len(lost_dates)} existing sessions; "
+                f"first missing: {min(lost_dates)}"
+            )
+
         conn.execute(
             "DELETE FROM daily_bars WHERE symbol = ?",
             (symbol,),

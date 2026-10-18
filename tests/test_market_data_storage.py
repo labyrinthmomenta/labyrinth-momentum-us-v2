@@ -202,7 +202,10 @@ def test_replace_history_preserves_other_symbols(database):
     replace_history(
         database,
         "AAPL",
-        [make_bar(date(2026, 10, 14), close=110)],
+        [
+            make_bar(date(2026, 10, 13), close=100),
+            make_bar(date(2026, 10, 14), close=110),
+        ],
     )
 
     assert load_bars(database, "NVDA") == [nvda]
@@ -235,3 +238,66 @@ def test_replace_history_rejects_empty(database):
         replace_history(database, "AAPL", [])
 
     assert load_bars(database, "AAPL") == [original]
+
+
+def test_replace_rejects_shorter_history(database):
+    from src.data.storage.market_data import replace_history
+
+    original = [
+        make_bar(date(2026, 10, 12), close=100),
+        make_bar(date(2026, 10, 13), close=102),
+        make_bar(date(2026, 10, 14), close=104),
+    ]
+
+    save_bars(database, "AAPL", original)
+
+    shorter = [
+        make_bar(date(2026, 10, 13), close=51),
+        make_bar(date(2026, 10, 14), close=52),
+    ]
+
+    with pytest.raises(DataQualityError, match="remove"):
+        replace_history(database, "AAPL", shorter)
+
+    assert load_bars(database, "AAPL") == original
+
+
+def test_replace_rejects_missing_middle_session(database):
+    from src.data.storage.market_data import replace_history
+
+    original = [
+        make_bar(date(2026, 10, 12)),
+        make_bar(date(2026, 10, 13)),
+        make_bar(date(2026, 10, 14)),
+    ]
+
+    save_bars(database, "AAPL", original)
+
+    incoming = [
+        make_bar(date(2026, 10, 12), close=50),
+        make_bar(date(2026, 10, 14), close=52),
+    ]
+
+    with pytest.raises(DataQualityError, match="remove"):
+        replace_history(database, "AAPL", incoming)
+
+    assert load_bars(database, "AAPL") == original
+
+
+def test_replace_accepts_extended_history(database):
+    from src.data.storage.market_data import replace_history
+
+    save_bars(
+        database,
+        "AAPL",
+        [make_bar(date(2026, 10, 13), close=100)],
+    )
+
+    incoming = [
+        make_bar(date(2026, 10, 12), close=49),
+        make_bar(date(2026, 10, 13), close=50),
+        make_bar(date(2026, 10, 14), close=51),
+    ]
+
+    assert replace_history(database, "AAPL", incoming) == 3
+    assert load_bars(database, "AAPL") == incoming
