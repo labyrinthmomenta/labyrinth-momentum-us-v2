@@ -17,6 +17,7 @@ class DownloadStatus:
     last_success_utc: str | None
     last_session: str | None
     error_message: str | None
+    error_category: str | None = None
 
 
 def update_download_status(
@@ -26,6 +27,7 @@ def update_download_status(
     *,
     last_session: date | None = None,
     error_message: str | None = None,
+    error_category: str | None = None,
 ) -> None:
     """Update symbol status while preserving prior successful metadata."""
     symbol = symbol.strip().upper()
@@ -45,6 +47,17 @@ def update_download_status(
     if status == "SUCCESS" and error_message is not None:
         raise ValueError("SUCCESS cannot have error_message")
 
+    if status != "FAILED" and error_category is not None:
+        raise ValueError(
+            "error_category is only allowed for FAILED status"
+        )
+
+    from src.data.storage.migrations import (
+        ensure_error_category_column,
+    )
+
+    ensure_error_category_column(db_path)
+
     now = datetime.now(timezone.utc).isoformat()
 
     with sqlite3.connect(db_path) as conn:
@@ -56,9 +69,10 @@ def update_download_status(
                 last_success_utc,
                 last_session,
                 status,
-                error_message
+                error_message,
+                error_category
             )
-            VALUES (?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(symbol) DO UPDATE SET
                 last_attempt_utc = excluded.last_attempt_utc,
                 last_success_utc = CASE
@@ -72,7 +86,8 @@ def update_download_status(
                     ELSE download_status.last_session
                 END,
                 status = excluded.status,
-                error_message = excluded.error_message
+                error_message = excluded.error_message,
+                error_category = excluded.error_category
             """,
             (
                 symbol,
@@ -81,6 +96,7 @@ def update_download_status(
                 last_session.isoformat() if last_session else None,
                 status,
                 error_message,
+                error_category,
             ),
         )
 
@@ -90,6 +106,12 @@ def get_download_status(
     symbol: str,
 ) -> DownloadStatus | None:
     """Read the latest status for one symbol."""
+    from src.data.storage.migrations import (
+        ensure_error_category_column,
+    )
+
+    ensure_error_category_column(db_path)
+
     with sqlite3.connect(db_path) as conn:
         row = conn.execute(
             """
@@ -99,7 +121,8 @@ def get_download_status(
                 last_attempt_utc,
                 last_success_utc,
                 last_session,
-                error_message
+                error_message,
+                error_category
             FROM download_status
             WHERE symbol = ?
             """,

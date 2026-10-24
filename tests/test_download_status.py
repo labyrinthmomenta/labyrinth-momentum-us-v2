@@ -141,3 +141,59 @@ def test_success_rejects_error_message(database):
             last_session=date(2026, 10, 14),
             error_message="Unexpected error",
         )
+
+
+def test_failed_then_success_clears_error_category(database):
+    update_download_status(
+        database,
+        "AAPL",
+        "FAILED",
+        error_message="TimeoutError: provider timeout",
+        error_category="PROVIDER_ERROR",
+    )
+
+    failed = get_download_status(database, "AAPL")
+    assert failed.status == "FAILED"
+    assert failed.error_category == "PROVIDER_ERROR"
+
+    update_download_status(
+        database,
+        "AAPL",
+        "SUCCESS",
+        last_session=date(2026, 10, 14),
+    )
+
+    recovered = get_download_status(database, "AAPL")
+
+    assert recovered.status == "SUCCESS"
+    assert recovered.error_message is None
+    assert recovered.error_category is None
+    assert recovered.last_session == "2026-10-14"
+    assert recovered.last_success_utc is not None
+
+
+def test_failed_refresh_preserves_success_metadata(database):
+    update_download_status(
+        database,
+        "AAPL",
+        "SUCCESS",
+        last_session=date(2026, 10, 13),
+    )
+
+    previous = get_download_status(database, "AAPL")
+    assert previous.status == "SUCCESS"
+
+    update_download_status(
+        database,
+        "AAPL",
+        "FAILED",
+        error_message="TimeoutError: provider timeout",
+        error_category="PROVIDER_ERROR",
+    )
+
+    failed = get_download_status(database, "AAPL")
+
+    assert failed.status == "FAILED"
+    assert failed.error_category == "PROVIDER_ERROR"
+    assert failed.last_session == "2026-10-13"
+    assert failed.last_success_utc == previous.last_success_utc

@@ -270,3 +270,83 @@ def test_corrupted_success_is_not_skipped(database):
     assert second.status == "SUCCESS"
     assert calls == ["AAPL", "AAPL"]
     assert load_bars(database, "AAPL") == bars
+
+
+def test_runner_classifies_missing_history(database):
+    bars = make_bars()[:80]
+
+    result = ingest_symbol(
+        database,
+        "FCBM",
+        as_of=AS_OF,
+        fetcher=lambda symbol: bars,
+    )
+
+    assert result.status == "FAILED"
+    assert result.error_category == "DATA_QUALITY_ERROR"
+    assert result.retryable is False
+
+
+def test_runner_classifies_provider_timeout(database):
+    def timeout_fetcher(symbol):
+        raise TimeoutError("Simulated Yahoo timeout")
+
+    result = ingest_symbol(
+        database,
+        "AAPL",
+        as_of=AS_OF,
+        fetcher=timeout_fetcher,
+    )
+
+    assert result.status == "FAILED"
+    assert result.error_category == "PROVIDER_ERROR"
+    assert result.retryable is True
+
+
+def test_success_has_no_error_category(database):
+    result = ingest_symbol(
+        database,
+        "AAPL",
+        as_of=AS_OF,
+        fetcher=lambda symbol: make_bars(),
+    )
+
+    assert result.status == "SUCCESS"
+    assert result.error_category is None
+    assert result.retryable is False
+
+
+def test_runner_persists_data_quality_error_category(database):
+    result = ingest_symbol(
+        database,
+        "FCBM",
+        as_of=AS_OF,
+        fetcher=lambda symbol: make_bars()[:80],
+    )
+
+    stored = get_download_status(database, "FCBM")
+
+    assert result.status == "FAILED"
+    assert result.error_category == "DATA_QUALITY_ERROR"
+    assert stored.status == "FAILED"
+    assert stored.error_category == "DATA_QUALITY_ERROR"
+
+
+def test_runner_persists_provider_error_category(database):
+    def timeout_fetcher(symbol):
+        raise TimeoutError("Simulated provider timeout")
+
+    result = ingest_symbol(
+        database,
+        "AAPL",
+        as_of=AS_OF,
+        fetcher=timeout_fetcher,
+    )
+
+    stored = get_download_status(database, "AAPL")
+
+    assert result.status == "FAILED"
+    assert result.error_category == "PROVIDER_ERROR"
+    assert result.retryable is True
+    assert stored.status == "FAILED"
+    assert stored.error_category == "PROVIDER_ERROR"

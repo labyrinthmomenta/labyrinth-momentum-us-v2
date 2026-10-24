@@ -7,6 +7,7 @@ from pathlib import Path
 
 from src.calculation.engine import DataQualityError, PriceBar, compute_snapshot
 from src.data.eligibility import check_eligibility
+from src.data.ingestion_errors import classify_ingestion_error
 from src.data.providers.sessions import validate_recent_sessions
 from src.data.storage.market_data import load_bars
 from src.data.storage.atomic_ingestion import persist_complete_history
@@ -23,6 +24,8 @@ class IngestionResult:
     eligibility: str | None
     rows: int
     reason: str
+    error_category: str | None = None
+    retryable: bool = False
 
 
 def ingest_symbol(
@@ -100,11 +103,14 @@ def ingest_symbol(
         )
 
     except Exception as exc:
+        classified = classify_ingestion_error(exc)
+
         update_download_status(
             db_path,
             symbol,
             "FAILED",
             error_message=f"{type(exc).__name__}: {exc}"[:500],
+            error_category=classified.category,
         )
 
         return IngestionResult(
@@ -113,4 +119,6 @@ def ingest_symbol(
             None,
             0,
             f"{type(exc).__name__}: {exc}",
+            error_category=classified.category,
+            retryable=classified.retryable,
         )
