@@ -140,6 +140,8 @@ def fetch_price_bars(
             progress=False,
             threads=False,
         )
+    except (TimeoutError, ConnectionError):
+        raise
     except Exception as exc:
         raise DataQualityError(
             f"Yahoo download failed for {symbol}"

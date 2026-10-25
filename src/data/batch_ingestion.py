@@ -6,6 +6,7 @@ from datetime import date
 from pathlib import Path
 
 from src.calculation.engine import PriceBar
+from src.data.batch_circuit_breaker import BatchCircuitBreaker
 from src.data.ingestion_runner import IngestionResult, ingest_symbol
 
 
@@ -13,6 +14,8 @@ from src.data.ingestion_runner import IngestionResult, ingest_symbol
 class BatchResult:
     results: tuple[IngestionResult, ...]
     requested: int
+    stopped_early: bool = False
+    unprocessed_symbols: tuple[str, ...] = ()
 
     @property
     def counts(self) -> dict[str, int]:
@@ -55,8 +58,9 @@ def ingest_batch(
     fetcher: Callable[[str], Sequence[PriceBar]],
     max_symbols: int = 25,
     force: bool = False,
+    circuit_breaker: BatchCircuitBreaker | None = None,
 ) -> BatchResult:
-    """Ingest a bounded batch with deterministic input ordering."""
+    """Ingest a bounded batch, optionally stopping on provider failures."""
     if not 1 <= max_symbols <= 25:
         raise ValueError("max_symbols must be between 1 and 25")
 
@@ -73,18 +77,29 @@ def ingest_batch(
             f"limit is {max_symbols}"
         )
 
-    results = tuple(
-        ingest_symbol(
+    results: list[IngestionResult] = []
+    unprocessed: tuple[str, ...] = ()
+
+    for index, symbol in enumerate(normalized):
+        if circuit_breaker is not None and circuit_breaker.is_open:
+            unprocessed = normalized[index:]
+            break
+
+        result = ingest_symbol(
             db_path,
             symbol,
             as_of=as_of,
             fetcher=fetcher,
             force=force,
         )
-        for symbol in normalized
-    )
+        results.append(result)
+
+        if circuit_breaker is not None:
+            circuit_breaker.record(result)
 
     return BatchResult(
-        results=results,
+        results=tuple(results),
         requested=len(normalized),
+        stopped_early=bool(unprocessed),
+        unprocessed_symbols=unprocessed,
     )

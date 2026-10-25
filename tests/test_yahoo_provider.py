@@ -160,7 +160,7 @@ def test_fetch_handles_download_error():
     def failing_download(*args, **kwargs):
         raise ConnectionError("Network unavailable")
 
-    with pytest.raises(DataQualityError, match="download failed"):
+    with pytest.raises(ConnectionError, match="Network unavailable"):
         fetch_price_bars(
             "AAPL",
             start=date(2026, 10, 13),
