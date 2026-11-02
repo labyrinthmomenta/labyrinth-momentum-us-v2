@@ -10,6 +10,7 @@ from src.data.providers.controlled_fetch import (
 )
 from src.data.providers.request_pacer import RequestPacer
 from src.data.providers.yahoo import fetch_price_bars
+from src.data.providers.yahoo_history import fetch_history_bars
 
 
 def make_controlled_yahoo_fetcher(
@@ -45,3 +46,21 @@ def make_controlled_yahoo_fetcher(
         )
 
     return fetch
+
+
+def make_controlled_yahoo_history_fetcher(
+    *,
+    start: date,
+    end: date,
+    pacer: RequestPacer | None = None,
+    policy: FetchPolicy | None = None,
+    provider: Callable[..., list[PriceBar]] = fetch_history_bars,
+) -> Callable[[str], list[PriceBar]]:
+    """Use Ticker.history with the existing pacing and retry policy."""
+    return make_controlled_yahoo_fetcher(
+        start=start,
+        end=end,
+        pacer=pacer,
+        policy=policy,
+        provider=provider,
+    )

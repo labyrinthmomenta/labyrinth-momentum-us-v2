@@ -121,3 +121,35 @@ def test_skipped_preserves_provider_error_streak():
 
     assert breaker.consecutive_provider_errors == 3
     assert breaker.is_open
+
+
+def test_rate_limit_opens_circuit_immediately():
+    breaker = BatchCircuitBreaker(
+        max_consecutive_provider_errors=3
+    )
+
+    breaker.record(result("FAILED", "RATE_LIMIT_ERROR"))
+
+    assert breaker.is_open
+    assert breaker.consecutive_provider_errors == 0
+
+
+def test_rate_limit_opens_after_prior_provider_failure():
+    breaker = BatchCircuitBreaker()
+
+    breaker.record(result("FAILED", "PROVIDER_ERROR"))
+    assert not breaker.is_open
+
+    breaker.record(result("FAILED", "RATE_LIMIT_ERROR"))
+
+    assert breaker.is_open
+    assert breaker.consecutive_provider_errors == 1
+
+
+def test_open_rate_limit_circuit_cannot_be_reset_by_success():
+    breaker = BatchCircuitBreaker()
+
+    breaker.record(result("FAILED", "RATE_LIMIT_ERROR"))
+    breaker.record(result("SUCCESS"))
+
+    assert breaker.is_open

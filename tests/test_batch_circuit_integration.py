@@ -172,3 +172,140 @@ def test_fresh_breaker_allows_new_batch_attempt(tmp_path):
     assert result.counts["FAILED"] == 2
     assert result.stopped_early is False
     assert result.unprocessed_symbols == ()
+
+
+def test_yahoo_rate_limit_stops_batch_after_first_symbol(tmp_path):
+    """A real yfinance exception type must stop the remaining batch."""
+    from yfinance.exceptions import YFRateLimitError
+
+    from src.data.providers.yahoo import fetch_price_bars
+
+    db_path = tmp_path / "rate_limit.db"
+    initialize_test_database(db_path)
+
+    calls = []
+
+    def rate_limited_downloader(symbol, **kwargs):
+        calls.append(symbol)
+        raise YFRateLimitError()
+
+    def fetcher(symbol):
+        return fetch_price_bars(
+            symbol,
+            start=date(2025, 10, 1),
+            end=date(2026, 10, 15),
+            downloader=rate_limited_downloader,
+        )
+
+    breaker = BatchCircuitBreaker(
+        max_consecutive_provider_errors=3
+    )
+
+    result = ingest_batch(
+        db_path,
+        ["AAA", "BBB", "CCC", "DDD", "EEE"],
+        as_of=AS_OF,
+        fetcher=fetcher,
+        circuit_breaker=breaker,
+    )
+
+    assert calls == ["AAA"]
+    assert breaker.is_open
+
+    assert result.requested == 5
+    assert result.counts == {
+        "SUCCESS": 0,
+        "SKIPPED": 0,
+        "FAILED": 1,
+    }
+
+    assert result.error_categories == {
+        "RATE_LIMIT_ERROR": 1,
+    }
+
+    assert result.stopped_early is True
+    assert result.unprocessed_symbols == (
+        "BBB", "CCC", "DDD", "EEE"
+    )
+
+    first = get_download_status(db_path, "AAA")
+    assert first is not None
+    assert first.status == "FAILED"
+    assert first.error_category == "RATE_LIMIT_ERROR"
+
+    for symbol in ("BBB", "CCC", "DDD", "EEE"):
+        assert get_download_status(db_path, symbol) is None
+
+
+def test_controlled_history_rate_limit_stops_batch(tmp_path):
+    """Controlled Ticker.history rate-limit must halt remaining symbols."""
+    from datetime import date
+
+    from yfinance.exceptions import YFRateLimitError
+
+    from src.data.providers.controlled_fetch import FetchPolicy
+    from src.data.providers.controlled_yahoo import (
+        make_controlled_yahoo_history_fetcher,
+    )
+    from src.data.providers.request_pacer import RequestPacer
+    from src.data.providers.yahoo_history import fetch_history_bars
+
+    db_path = tmp_path / "controlled_history_limit.db"
+    initialize_test_database(db_path)
+
+    calls = []
+
+    class FakeTicker:
+        def __init__(self, symbol):
+            self.symbol = symbol
+
+        def history(self, **kwargs):
+            calls.append(self.symbol)
+            raise YFRateLimitError()
+
+    def provider(symbol, *, start, end):
+        return fetch_history_bars(
+            symbol,
+            start=start,
+            end=end,
+            ticker_factory=FakeTicker,
+        )
+
+    # No real waiting or network calls during this test.
+    pacer = RequestPacer(min_interval_seconds=0)
+
+    fetcher = make_controlled_yahoo_history_fetcher(
+        start=date(2025, 10, 1),
+        end=date(2026, 10, 15),
+        provider=provider,
+        pacer=pacer,
+        policy=FetchPolicy(
+            max_attempts=3,
+            retry_delay_seconds=0,
+        ),
+    )
+
+    breaker = BatchCircuitBreaker()
+
+    result = ingest_batch(
+        db_path,
+        ["AAA", "BBB", "CCC"],
+        as_of=AS_OF,
+        fetcher=fetcher,
+        circuit_breaker=breaker,
+    )
+
+    assert calls == ["AAA"]
+    assert breaker.is_open
+    assert result.counts["FAILED"] == 1
+    assert result.error_categories == {"RATE_LIMIT_ERROR": 1}
+    assert result.stopped_early is True
+    assert result.unprocessed_symbols == ("BBB", "CCC")
+
+    first = get_download_status(db_path, "AAA")
+    assert first is not None
+    assert first.status == "FAILED"
+    assert first.error_category == "RATE_LIMIT_ERROR"
+
+    assert get_download_status(db_path, "BBB") is None
+    assert get_download_status(db_path, "CCC") is None

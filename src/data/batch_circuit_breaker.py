@@ -27,6 +27,13 @@ class BatchCircuitBreaker:
 
         if (
             result.status == "FAILED"
+            and result.error_category == "RATE_LIMIT_ERROR"
+        ):
+            self.is_open = True
+            return
+
+        if (
+            result.status == "FAILED"
             and result.error_category == "PROVIDER_ERROR"
         ):
             self.consecutive_provider_errors += 1
