@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "market": "US",
+  "mode": "PILOT_ONLY",
+  "approval_status": "OFFLINE_CANDIDATE",
+  "production_approved": false,
+  "checkpoint_file": "us_pilot_2026-11-02_checkpoint_v1.json",
+  "checkpoint_sha256": "71aa27cb1bdc93ba0f7890dd4a6e511eb859002f70ad9ae2349f8c3a1f17444c",
+  "snapshot_id": "us_pilot_2026-11-02_8450_v1",
+  "snapshot_sha256": "a4a85b4cb2b59746d40060bedd5c81d93a2b1d167f605b09f36ffa6d14c12f97",
+  "pilot_manifest_sha256": "0b35135a9e55f9ff974dcab795f9ba52d8522b8fa50a033bc340d74acccffebd",
+  "as_of": "2026-11-02",
+  "previous_checkpoint_sha256": null
+}
