@@ -1,0 +1,12 @@
+{
+  "market": "US",
+  "mode": "PILOT_ONLY",
+  "manifest_path": "config/us_pilot_manifest.json",
+  "expected_manifest_sha256": "0b35135a9e55f9ff974dcab795f9ba52d8522b8fa50a033bc340d74acccffebd",
+  "timezone": "America/New_York",
+  "not_before_local": "18:00",
+  "minimum_close_delay_minutes": 120,
+  "live_provider_enabled": false,
+  "scheduled_execution_enabled": false,
+  "publication_enabled": false
+}

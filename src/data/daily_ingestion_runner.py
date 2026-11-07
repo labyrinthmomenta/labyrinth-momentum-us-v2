@@ -20,18 +20,35 @@ from src.data.incremental_history_fetcher import (
 )
 from src.data.session_clock import resolve_ingestion_session
 from src.data.daily_run_lock import hold_daily_ingestion_lock
+from src.data.daily_operations_policy import (
+    evaluate_daily_preflight,
+)
 
 
 MAX_PILOT_SYMBOLS = 25
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+OPERATIONS_CONFIG_PATH = (
+    PROJECT_ROOT / 'config/us_daily_operations.json'
+)
+PILOT_MANIFEST_PATH = (
+    PROJECT_ROOT / 'config/us_pilot_manifest.json'
+)
+PINNED_MANIFEST_SHA256 = (
+    '0b35135a9e55f9ff974dcab795f9ba52'
+    'd8522b8fa50a033bc340d74acccffebd'
+)
 
 
 @dataclass(frozen=True)
 class DailyIngestionOutcome:
     """Result and audit location for a daily pilot run."""
 
-    as_of: date
-    report_path: Path
-    result: DailyBatchResult
+    as_of: date | None
+    report_path: Path | None
+    result: DailyBatchResult | None
+    decision: str = 'READY'
+    reason: str = ''
 
 
 def _validate_bootstrap_config(config_path: Path) -> None:
@@ -55,6 +72,82 @@ def _validate_bootstrap_config(config_path: Path) -> None:
         raise ValueError(
             "US bootstrap safety gate rejected configuration"
         )
+
+
+
+def _load_pinned_operational_policy() -> tuple[Path, str]:
+    """Read and strictly verify the offline pilot operations policy.
+
+    The expected manifest digest is independently pinned in
+    this module. Changing the operations JSON cannot approve
+    an alternative manifest or enable live execution.
+    """
+    path = Path(OPERATIONS_CONFIG_PATH)
+
+    if not path.is_file():
+        raise FileNotFoundError(path)
+
+    def unique_keys(pairs):
+        result = {}
+
+        for key, value in pairs:
+            if key in result:
+                raise ValueError(
+                    f"Duplicate operations key: {key}"
+                )
+            result[key] = value
+
+        return result
+
+    operations = json.loads(
+        path.read_text(encoding="utf-8"),
+        object_pairs_hook=unique_keys,
+    )
+
+    if not isinstance(operations, dict):
+        raise ValueError(
+            "US daily operations configuration must be an object"
+        )
+
+    required = {
+        "market",
+        "mode",
+        "manifest_path",
+        "expected_manifest_sha256",
+        "timezone",
+        "not_before_local",
+        "minimum_close_delay_minutes",
+        "live_provider_enabled",
+        "scheduled_execution_enabled",
+        "publication_enabled",
+    }
+
+    if set(operations) != required:
+        raise ValueError(
+            "Unexpected US daily operations configuration schema"
+        )
+
+    if (
+        operations["market"] != "US"
+        or operations["mode"] != "PILOT_ONLY"
+        or operations["manifest_path"]
+        != "config/us_pilot_manifest.json"
+        or operations["expected_manifest_sha256"]
+        != PINNED_MANIFEST_SHA256
+        or operations["timezone"] != "America/New_York"
+        or operations["not_before_local"] != "18:00"
+        or type(operations["minimum_close_delay_minutes"])
+        is not int
+        or operations["minimum_close_delay_minutes"] != 120
+        or operations["live_provider_enabled"] is not False
+        or operations["scheduled_execution_enabled"] is not False
+        or operations["publication_enabled"] is not False
+    ):
+        raise ValueError(
+            "US daily operations authorization rejected"
+        )
+
+    return PILOT_MANIFEST_PATH, PINNED_MANIFEST_SHA256
 
 
 def _normalize_pilot_symbols(
@@ -165,11 +258,60 @@ def run_daily_ingestion(
 
         normalized = _normalize_pilot_symbols(symbols)
 
-        # 1. Resolve the latest eligible US trading session.
+        # 1. Authorize the requested subset before any
+        #    fetcher construction or market-data writes.
+        manifest_path, expected_sha256 = (
+            _load_pinned_operational_policy()
+        )
+
+        preflight = evaluate_daily_preflight(
+            config_path=config_path,
+            manifest_path=manifest_path,
+            expected_manifest_sha256=expected_sha256,
+            at=at,
+        )
+
+        unauthorized = [
+            symbol
+            for symbol in normalized
+            if symbol not in preflight.symbols
+        ]
+
+        if unauthorized:
+            raise ValueError(
+                "Symbols outside the pinned US pilot manifest: "
+                + ", ".join(unauthorized)
+            )
+
+        if preflight.decision != "READY":
+            if preflight.decision not in {
+                "SKIP_EARLY",
+                "SKIP_NO_SESSION",
+            }:
+                raise ValueError(
+                    f"Unknown preflight decision: "
+                    f"{preflight.decision}"
+                )
+
+            return DailyIngestionOutcome(
+                as_of=None,
+                report_path=None,
+                result=None,
+                decision=preflight.decision,
+                reason=preflight.reason,
+            )
+
+        # Keep the existing session clock, but reject a
+        # disagreement with the independent operations gate.
         as_of = resolve_ingestion_session(
             at=at,
             settlement_delay_minutes=settlement_delay_minutes,
         )
+
+        if preflight.as_of != as_of:
+            raise ValueError(
+                "Session Clock disagrees with operations preflight"
+            )
 
         if full_start > as_of:
             raise ValueError(
@@ -241,4 +383,6 @@ def run_daily_ingestion(
             as_of=as_of,
             report_path=output_path,
             result=result,
+            decision='READY',
+            reason=preflight.reason,
         )

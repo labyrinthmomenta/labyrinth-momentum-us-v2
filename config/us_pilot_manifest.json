@@ -1,0 +1,32 @@
+{
+  "market": "US",
+  "mode": "PILOT_ONLY",
+  "production_approved": false,
+  "symbols": [
+    "GOOGL",
+    "AMZN",
+    "META",
+    "TSLA",
+    "NFLX",
+    "COIN",
+    "UBER",
+    "HOOD",
+    "PFE",
+    "T",
+    "KO",
+    "BAC",
+    "NIO",
+    "LCID",
+    "PTON",
+    "OPEN",
+    "FUBO",
+    "BB",
+    "NOK",
+    "ACHR",
+    "JOBY",
+    "RGTI",
+    "KOSS",
+    "CRSP",
+    "IONQ"
+  ]
+}

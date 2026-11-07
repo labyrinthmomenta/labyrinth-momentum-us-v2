@@ -12,7 +12,7 @@ from src.data.daily_batch_orchestrator import DailyBatchResult
 from src.data.ingestion_runner import IngestionResult
 
 
-AT = datetime(2026, 11, 3, 20, 0, tzinfo=timezone.utc)
+AT = datetime(2026, 11, 2, 23, 30, tzinfo=timezone.utc)
 AS_OF = date(2026, 11, 2)
 FULL_START = date(2025, 7, 1)
 
@@ -30,6 +30,7 @@ def pilot(tmp_path):
     config.write_text(
         json.dumps({
             "market": "US",
+            "timezone": "America/New_York",
             "status": "BOOTSTRAP_ONLY",
             "publication_enabled": False,
             "vcp_production_enabled": False,
@@ -47,7 +48,7 @@ def pilot(tmp_path):
 def execute(pilot, **overrides):
     params = {
         **pilot,
-        "symbols": ["AAPL", "MSFT"],
+        "symbols": ["GOOGL", "NIO"],
         "at": AT,
         "full_start": FULL_START,
         "provider": offline_provider,
@@ -87,7 +88,7 @@ def test_connects_all_four_components(monkeypatch, pilot):
     batch_result = DailyBatchResult(
         batch_results=(
             BatchResult(
-                results=(skipped("AAPL"), skipped("MSFT")),
+                results=(skipped("GOOGL"), skipped("NIO")),
                 requested=2,
             ),
         ),
@@ -97,7 +98,7 @@ def test_connects_all_four_components(monkeypatch, pilot):
     def fake_batches(db_path, symbols, **kwargs):
         events.append("batch_orchestrator")
         assert Path(db_path) == pilot["db_path"]
-        assert tuple(symbols) == ("AAPL", "MSFT")
+        assert tuple(symbols) == ("GOOGL", "NIO")
         assert kwargs["as_of"] == AS_OF
         assert kwargs["fetcher"] is offline_provider
         assert kwargs["batch_size"] == 5
@@ -127,7 +128,7 @@ def test_connects_all_four_components(monkeypatch, pilot):
 
     outcome = execute(
         pilot,
-        symbols=[" aapl ", "MSFT", "aapl"],
+        symbols=[" googl ", "NIO", "googl"],
     )
 
     assert events == [

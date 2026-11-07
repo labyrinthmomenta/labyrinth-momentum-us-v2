@@ -109,6 +109,7 @@ def test_runner_records_abort_and_reraises(
     config.write_text(
         json.dumps({
             "market": "US",
+            "timezone": "America/New_York",
             "status": "BOOTSTRAP_ONLY",
             "publication_enabled": False,
             "vcp_production_enabled": False,
@@ -149,11 +150,11 @@ def test_runner_records_abort_and_reraises(
             db_path=db,
             config_path=config,
             report_path=report_path,
-            symbols=["AAPL", "MSFT"],
+            symbols=["GOOGL", "NIO"],
             full_start=date(2025, 7, 1),
             provider=offline_provider,
             at=datetime(
-                2026, 11, 3, 20, 0,
+                2026, 11, 2, 23, 30,
                 tzinfo=timezone.utc,
             ),
         )
@@ -167,7 +168,7 @@ def test_runner_records_abort_and_reraises(
     assert report["run_status"] == "ABORTED"
     assert report["as_of"] == "2026-11-02"
     assert report["requested_symbols"] == [
-        "AAPL", "MSFT"
+        "GOOGL", "NIO"
     ]
 
     assert report["summary"]["attempted"] is None
