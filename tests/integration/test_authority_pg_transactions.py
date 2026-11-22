@@ -250,6 +250,7 @@ def apply(
     synthetic_now=NOW,
     inject_abort=False,
     lose_response=False,
+    after_absent_receipt_lookup=None,
 ):
     """Perform a PostgreSQL test transaction.
 
@@ -304,6 +305,13 @@ def apply(
                     "SIMULATED_IDEMPOTENT_RETRY",
                     stored[4],
                 )
+
+            # Test-only synchronization hook.
+            # Runs after an absent receipt lookup,
+            # before the state row is locked.
+            # No effect in ordinary model calls.
+            if after_absent_receipt_lookup is not None:
+                after_absent_receipt_lookup()
 
             # Caller-supplied synthetic time.
             # This deliberately does not claim
@@ -730,3 +738,70 @@ def test_12_cross_stream_concurrent_nonce_collision(
     assert len(left_receipts) + len(right_receipts) == 1
 
     assert sorted([left[1], right[1]]) == [0, 1]
+
+
+def test_13_concurrent_identical_retry_is_idempotent(
+    backend,
+):
+    """Two identical requests race after observing no receipt.
+
+    Expected semantics:
+    - One transaction commits.
+    - The other retrieves the committed result.
+    - Only one generation advancement exists.
+
+    This is intentionally a TDD RED test.
+    """
+
+    item = request(
+        "race",
+        "identical-retry",
+        17,
+        candidate=B,
+    )
+
+    # Forces both transactions to finish their
+    # initial receipt lookup before either proceeds
+    # toward the state lock.
+    gate = threading.Barrier(2)
+
+    def contender():
+        return apply(
+            backend,
+            item,
+            after_absent_receipt_lookup=lambda: (
+                gate.wait(timeout=10)
+            ),
+        )
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        jobs = [
+            pool.submit(contender)
+            for _ in range(2)
+        ]
+
+        outcomes = [
+            job.result(timeout=30)
+            for job in jobs
+        ]
+
+    statuses = sorted(
+        outcome[0]
+        for outcome in outcomes
+    )
+
+    assert statuses == [
+        "SIMULATED_COMMITTED",
+        "SIMULATED_IDEMPOTENT_RETRY",
+    ], outcomes
+
+    # Both calls must refer to one committed result.
+    assert outcomes[0][1] == outcomes[1][1]
+
+    head, receipts = read_state(
+        backend,
+        "race",
+    )
+
+    assert head == (B, 1, H1, PILOT)
+    assert len(receipts) == 1
