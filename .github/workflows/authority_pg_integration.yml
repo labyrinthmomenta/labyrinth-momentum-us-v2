@@ -1,0 +1,82 @@
+name: Authority PostgreSQL integration (disposable)
+
+on:
+  push:
+    branches:
+      - a6c38-pg-isolation
+      - main
+    paths:
+      - tests/integration/test_authority_pg_transactions.py
+      - .github/workflows/authority_pg_integration.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  postgres-transaction-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: ci_authority
+          POSTGRES_USER: ci_authority
+          POSTGRES_PASSWORD: ci_only_disposable_312
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci_authority -d ci_authority"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      A6C38_PG_INTEGRATION: '1'
+      A6C38_PG_DSN: >-
+        host=127.0.0.1
+        port=5432
+        dbname=ci_authority
+        user=ci_authority
+        password=ci_only_disposable_312
+        connect_timeout=5
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install integration test dependencies
+        run: |
+          python -m pip install pytest==8.3.5
+          python -m pip install 'psycopg[binary]==3.3.8'
+
+      - name: Verify integration mode is explicitly enabled
+        run: |
+          python - <<'PY'
+          import os
+          assert os.environ["A6C38_PG_INTEGRATION"] == "1"
+          assert "ci_authority" in os.environ["A6C38_PG_DSN"]
+          print("Disposable PostgreSQL integration: ENABLED")
+          print("Production authority: NOT CONFIGURED")
+          PY
+
+      - name: Execute real PostgreSQL transaction tests
+        run: |
+          python -m pytest \
+            tests/integration/test_authority_pg_transactions.py \
+            -q -ra
+
+      - name: Preserve no production authority
+        if: always()
+        run: |
+          echo "PostgreSQL service: DISPOSABLE CI ONLY"
+          echo "Independent authority: NOT ESTABLISHED"
+          echo "Signed receipt: NOT IMPLEMENTED"
+          echo "Production CAS: NOT EXECUTED"
