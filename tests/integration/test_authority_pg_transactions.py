@@ -354,6 +354,49 @@ def apply(
             )
 
             if head != expected:
+                # Another transaction may have committed
+                # this exact request while we waited for
+                # the stream's FOR UPDATE row lock.
+                #
+                # Under PostgreSQL READ COMMITTED, this
+                # new statement sees that committed receipt.
+                # Never infer idempotency from the head alone.
+                committed = conn.execute(
+                    """
+                    SELECT operation_id, request_id,
+                           nonce, payload_sha, receipt_sha
+                    FROM receipts
+                    WHERE operation_id = %s
+                       OR request_id = %s
+                       OR nonce = %s
+                    ORDER BY operation_id
+                    LIMIT 1
+                    """,
+                    (
+                        item["operation_id"],
+                        item["request_id"],
+                        item["nonce"],
+                    ),
+                ).fetchone()
+
+                if committed is not None:
+                    identity = (
+                        item["operation_id"],
+                        item["request_id"],
+                        item["nonce"],
+                        payload_sha,
+                    )
+
+                    if committed[:4] == identity:
+                        conn.execute("COMMIT")
+                        return (
+                            "SIMULATED_IDEMPOTENT_RETRY",
+                            committed[4],
+                        )
+
+                    conn.execute("ROLLBACK")
+                    return "DENIED_REPLAY_CONFLICT", None
+
                 conn.execute("ROLLBACK")
                 return "DENIED_STALE_STATE", None
 
