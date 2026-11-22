@@ -143,12 +143,28 @@ def backend():
     if not ENABLED:
         pytest.skip("PostgreSQL not enabled")
 
-    dsn = os.environ.get("A6C38_PG_DSN")
+    # Fail closed before opening any PostgreSQL
+    # connection or creating a disposable schema.
+    from src.data.disposable_pg_ci_guard import (
+        require_disposable_ci_dsn,
+    )
 
-    if not dsn:
+    dsn = require_disposable_ci_dsn(os.environ)
+
+    # Confirm server-side database identity.
+    # This is a CI safety check, not authentication.
+    with open_connection(dsn) as identity_conn:
+        identity = identity_conn.execute(
+            """
+            SELECT current_database(),
+                   current_user,
+                   inet_server_port()
+            """
+        ).fetchone()
+
+    if identity != ("ci_authority", "ci_authority", 5432):
         pytest.fail(
-            "PostgreSQL integration enabled "
-            "without an explicit disposable DSN"
+            "PostgreSQL disposable server identity rejected"
         )
 
     # This is only a CI-created disposable schema.
