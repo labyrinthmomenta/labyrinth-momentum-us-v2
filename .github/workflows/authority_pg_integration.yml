@@ -7,6 +7,8 @@ on:
       - main
     paths:
       - tests/integration/test_authority_pg_transactions.py
+      - src/data/disposable_pg_ci_guard.py
+      - tests/test_disposable_pg_ci_guard.py
       - .github/workflows/authority_pg_integration.yml
   workflow_dispatch:
 
@@ -66,6 +68,10 @@ jobs:
           print("Disposable PostgreSQL integration: ENABLED")
           print("Production authority: NOT CONFIGURED")
           PY
+
+      - name: Verify disposable CI guard unit tests
+        run: |
+          python -m pytest tests/test_disposable_pg_ci_guard.py -q
 
       - name: Execute real PostgreSQL transaction tests
         run: |
